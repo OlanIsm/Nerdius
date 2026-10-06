@@ -19,89 +19,89 @@ const idleTexture = new URL(
 ).href;
 const layers = [
   {
-    name: "background",
+    name: "savannah-1",
     url: new URL(
-      "../../assets/parallax backgound pack/compressed/_11_background.webp",
+      "../../assets/savannah parallax/Savannah Parallax/compressed/1.webp",
       import.meta.url,
     ).href,
     speed: 0,
   },
   {
-    name: "distant-clouds",
+    name: "savannah-2",
     url: new URL(
-      "../../assets/parallax backgound pack/compressed/_10_distant_clouds.webp",
+      "../../assets/savannah parallax/Savannah Parallax/compressed/2.webp",
       import.meta.url,
     ).href,
     speed: 0.04,
   },
   {
-    name: "distant-clouds-2",
+    name: "savannah-3",
     url: new URL(
-      "../../assets/parallax backgound pack/compressed/_09_distant_clouds1.webp",
+      "../../assets/savannah parallax/Savannah Parallax/compressed/3.webp",
       import.meta.url,
     ).href,
     speed: 0.07,
   },
   {
-    name: "clouds",
+    name: "savannah-4",
     url: new URL(
-      "../../assets/parallax backgound pack/compressed/_08_clouds.webp",
+      "../../assets/savannah parallax/Savannah Parallax/compressed/4.webp",
       import.meta.url,
     ).href,
     speed: 0.1,
   },
   {
-    name: "huge-clouds",
+    name: "savannah-5",
     url: new URL(
-      "../../assets/parallax backgound pack/compressed/_07_huge_cloud.webp",
+      "../../assets/savannah parallax/Savannah Parallax/compressed/5.webp",
       import.meta.url,
     ).href,
     speed: 0.14,
   },
   {
-    name: "hill-2",
+    name: "savannah-6",
     url: new URL(
-      "../../assets/parallax backgound pack/compressed/_06_hill2.webp",
+      "../../assets/savannah parallax/Savannah Parallax/compressed/6.webp",
       import.meta.url,
     ).href,
     speed: 0.2,
   },
   {
-    name: "hill-1",
+    name: "savannah-7",
     url: new URL(
-      "../../assets/parallax backgound pack/compressed/_05_hill1.webp",
+      "../../assets/savannah parallax/Savannah Parallax/compressed/7.webp",
       import.meta.url,
     ).href,
     speed: 0.28,
   },
   {
-    name: "bushes",
+    name: "savannah-8",
     url: new URL(
-      "../../assets/parallax backgound pack/compressed/_04_bushes.webp",
+      "../../assets/savannah parallax/Savannah Parallax/compressed/8.webp",
       import.meta.url,
     ).href,
     speed: 0.38,
   },
   {
-    name: "distant-trees",
+    name: "savannah-9",
     url: new URL(
-      "../../assets/parallax backgound pack/compressed/_03_distant_trees.webp",
+      "../../assets/savannah parallax/Savannah Parallax/compressed/9.webp",
       import.meta.url,
     ).href,
     speed: 0.5,
   },
   {
-    name: "trees",
+    name: "savannah-10",
     url: new URL(
-      "../../assets/parallax backgound pack/compressed/_02_trees and bushes.webp",
+      "../../assets/savannah parallax/Savannah Parallax/compressed/10.webp",
       import.meta.url,
     ).href,
     speed: 0.72,
   },
   {
-    name: "ground",
+    name: "savannah-11",
     url: new URL(
-      "../../assets/parallax backgound pack/compressed/_01_ground.webp",
+      "../../assets/savannah parallax/Savannah Parallax/compressed/11.webp",
       import.meta.url,
     ).href,
     speed: 1,
@@ -223,7 +223,7 @@ export function PhaserWorld({
         const logicalHeight = height / scale;
         if (model.chunks.viewportHeight !== logicalHeight)
           model.resize(logicalHeight);
-        const tileWidth = (height * 1118) / 844;
+        const tileWidth = (height * 3973) / 3000;
         const imageTop = model.playerY * scale - (height * 657) / 844;
         const count = Math.ceil(width / tileWidth) + 1;
         this.scenery.forEach((images, layerIndex) => {
@@ -250,7 +250,7 @@ export function PhaserWorld({
       }
       private renderParallax() {
         const scale = this.scale.width / WORLD.width;
-        const tileWidth = (this.scale.height * 1118) / 844;
+        const tileWidth = (this.scale.height * 3973) / 3000;
         this.scenery.forEach((images, index) => {
           const offset =
             (model.distance * scale * layers[index].speed) % tileWidth;

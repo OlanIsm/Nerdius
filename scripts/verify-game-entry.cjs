@@ -25,7 +25,9 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
     const page = await browser.newPage({ viewport: { width: 430, height: 932 } });
     const errors = [], assets = [], actions = [];
     page.on('pageerror', error => errors.push(error.message));
-    page.on('response', response => { if (response.url().includes('.webp')) assets.push(response.url()); });
+    page.on('response', response => {
+      if (response.url().includes('.webp') || response.url().includes('.png')) assets.push(response.url());
+    });
     await page.route('**/auth/v1/**', route => route.fulfill({ json: authSession }));
     let releaseStart;
     let delayStart = false;
@@ -138,7 +140,14 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
     assert.notEqual(await world.getAttribute('data-walk-frame'), first, 'Phaser walk animation advances');
     const urls = JSON.parse(await world.getAttribute('data-layers'));
     assert.equal(urls.length, 11);
-    assert(urls.every(url => url.includes('.webp')), 'all parallax textures are WebP');
+    assert(
+      urls.every(
+        url =>
+          decodeURIComponent(url).includes('/savannah parallax/Savannah Parallax/') &&
+          url.endsWith('.webp'),
+      ),
+      'all parallax textures use Savannah assets',
+    );
     assert(urls.every(url => assets.includes(url)), 'all textures loaded by Phaser');
     await page.getByRole('button', { name: 'Battle menu', exact: true }).click();
     const stopped = await world.getAttribute('data-walk-frame');
