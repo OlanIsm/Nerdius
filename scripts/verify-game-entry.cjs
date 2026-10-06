@@ -150,6 +150,27 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
       'all parallax textures use Savannah assets',
     );
     assert(urls.every(url => assets.includes(url)), 'all textures loaded by Phaser');
+    assert.equal(
+      Number(await world.getAttribute('data-actor-size')),
+      (1.5 / 2.54) * 96,
+      'player uses fixed 1.5 cm CSS size',
+    );
+    assert.equal(await world.getAttribute('data-player-position'), '102', 'player uses editable world position');
+    assert(
+      Number(await world.getAttribute('data-actor-depth')) <
+        Number(await world.getAttribute('data-foreground-depth')),
+      'actors render behind foremost layer',
+    );
+    assert.deepEqual(
+      JSON.parse(await world.getAttribute('data-background-size')),
+      { width: (480 * 3973) / 3000, height: 480 },
+      'background uses fixed world dimensions',
+    );
+    assert(
+      Number(await world.getAttribute('data-background-bottom')) >=
+        await world.evaluate(element => element.clientHeight),
+      'background covers stage through health-bar edge',
+    );
     await page.getByRole('button', { name: 'Battle menu', exact: true }).click();
     const stopped = await world.getAttribute('data-walk-frame');
     const distance = await world.getAttribute('data-distance');
@@ -189,6 +210,9 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
       assert(await page.locator('.player-health').evaluate(element => getComputedStyle(element).backgroundImage.includes('Plank')), 'HP panel reuses navbar plank asset');
       assert((await page.locator('#enemy-hp').boundingBox()).y < quiz.y, 'Enemy HP belongs to the visual row');
       assert.equal(await world.getAttribute('data-hero-texture'), 'scholar-idle', 'encounters use the standing texture instead of a frozen walk frame');
+      assert.equal(await world.getAttribute('data-enemy-position'), '244', 'enemy uses editable world position');
+      assert.equal(await world.getAttribute('data-enemy-size'), await world.getAttribute('data-actor-size'), 'enemy uses same fixed size as player');
+      assert.equal(await world.getAttribute('data-enemy-depth'), await world.getAttribute('data-actor-depth'), 'enemy renders behind foremost layer');
       const idleFrame = await world.getAttribute('data-walk-frame');
       await page.waitForTimeout(150);
       assert.equal(await world.getAttribute('data-walk-frame'), idleFrame, 'idle pose stays still during encounters');

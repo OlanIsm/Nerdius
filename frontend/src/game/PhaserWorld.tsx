@@ -109,6 +109,14 @@ const layers = [
     speed: 1,
   },
 ] as const;
+const ACTOR_SIZE = (1.5 / 2.54) * 96;
+const PLAYER_POSITION = { x: 102 };
+const ENEMY_POSITION = { x: 244 };
+const ACTOR_DEPTH = layers.length - 1.5;
+const FOREGROUND_DEPTH = layers.length - 1;
+const BACKGROUND_HEIGHT = 480;
+const BACKGROUND_WIDTH = (BACKGROUND_HEIGHT * 3973) / 3000;
+const BACKGROUND_BASELINE = 657 / 844;
 export type WorldControls = {
   model: FantasyGame;
   act: (action: () => void) => void;
@@ -186,12 +194,12 @@ export function PhaserWorld({
         });
         this.scenery = layers.map(() => []);
         this.heroShadow = this.add
-          .ellipse(0, 0, 80, 5, 0x443423, 0.24)
-          .setDepth(12);
+          .ellipse(0, 0, ACTOR_SIZE * 0.75, 4, 0x443423, 0.24)
+          .setDepth(ACTOR_DEPTH);
         this.hero = this.add
           .sprite(0, 0, "scholar-idle")
           .setOrigin(0.5, 1)
-          .setDepth(13);
+          .setDepth(ACTOR_DEPTH);
         const reportFrame = () => {
           parent.dataset.walkFrame = this.hero.frame.name;
           parent.dataset.distance = String(model.distance);
@@ -205,6 +213,14 @@ export function PhaserWorld({
         );
         parent.dataset.renderer =
           this.game.renderer.type === Phaser.WEBGL ? "WebGL" : "Canvas";
+        parent.dataset.actorSize = String(ACTOR_SIZE);
+        parent.dataset.actorDepth = String(ACTOR_DEPTH);
+        parent.dataset.foregroundDepth = String(FOREGROUND_DEPTH);
+        parent.dataset.playerPosition = String(PLAYER_POSITION.x);
+        parent.dataset.backgroundSize = JSON.stringify({
+          width: BACKGROUND_WIDTH,
+          height: BACKGROUND_HEIGHT,
+        });
         parent.dataset.walkFrame = this.hero.frame.name;
         this.layout();
         this.sync();
@@ -232,8 +248,10 @@ export function PhaserWorld({
         const logicalHeight = height / scale;
         if (model.chunks.viewportHeight !== logicalHeight)
           model.resize(logicalHeight);
-        const tileWidth = (height * 3973) / 3000;
-        const imageTop = model.playerY * scale - (height * 657) / 844;
+        const tileWidth = BACKGROUND_WIDTH * scale;
+        const tileHeight = BACKGROUND_HEIGHT * scale;
+        const imageTop = model.playerY * scale - tileHeight * BACKGROUND_BASELINE;
+        parent.dataset.backgroundBottom = String(imageTop + tileHeight);
         const count = Math.ceil(width / tileWidth) + 1;
         this.scenery.forEach((images, layerIndex) => {
           while (images.length > count) images.pop()!.destroy();
@@ -245,21 +263,21 @@ export function PhaserWorld({
                 .setDepth(layerIndex),
             );
           images.forEach((image) =>
-            image.setDisplaySize(tileWidth, height).setY(imageTop),
+            image.setDisplaySize(tileWidth, tileHeight).setY(imageTop),
           );
         });
         this.hero
-          .setPosition(102 * scale, model.playerY * scale)
-          .setDisplaySize(Math.min(116 * scale, height * 0.32), Math.min(116 * scale, height * 0.32));
+          .setPosition(PLAYER_POSITION.x * scale, model.playerY * scale)
+          .setDisplaySize(ACTOR_SIZE, ACTOR_SIZE);
         this.heroShadow
-          .setPosition(102 * scale, model.playerY * scale - 3 * scale)
-          .setDisplaySize(80 * scale, 5 * scale);
+          .setPosition(PLAYER_POSITION.x * scale, model.playerY * scale - 3)
+          .setDisplaySize(ACTOR_SIZE * 0.75, 4);
         this.updateEnemies(true);
         this.renderParallax();
       }
       private renderParallax() {
         const scale = this.scale.width / WORLD.width;
-        const tileWidth = (this.scale.height * 3973) / 3000;
+        const tileWidth = BACKGROUND_WIDTH * scale;
         this.scenery.forEach((images, index) => {
           const offset =
             (model.distance * scale * layers[index].speed) % tileWidth;
@@ -281,28 +299,35 @@ export function PhaserWorld({
           this.shadows = [];
           if (visible) {
             const scale = this.scale.width / WORLD.width;
-            const size = Math.min((encounter.boss ? 168 : 108) * scale, this.scale.height * 0.34);
-            const x = 244 * scale;
+            const x = ENEMY_POSITION.x * scale;
             this.shadows.push(
               this.add
                 .ellipse(
                   x,
-                  model.playerY * scale - 3 * scale,
-                  size * 0.7,
-                  size * 0.04,
+                  model.playerY * scale - 3,
+                  ACTOR_SIZE * 0.75,
+                  4,
                   0x443423,
                   0.24,
                 )
-                .setDepth(12),
+                .setDepth(ACTOR_DEPTH),
             );
             this.enemies.push(
               this.add
                 .image(x, model.playerY * scale, "soda")
                 .setOrigin(0.5, 1)
-                .setDisplaySize(size, size)
-                .setDepth(14),
+                .setDisplaySize(ACTOR_SIZE, ACTOR_SIZE)
+                .setDepth(ACTOR_DEPTH),
             );
+            parent.dataset.enemySize = String(ACTOR_SIZE);
+            parent.dataset.enemyPosition = String(ENEMY_POSITION.x);
+            parent.dataset.enemyDepth = String(ACTOR_DEPTH);
           }
+        }
+        if (!visible) {
+          delete parent.dataset.enemySize;
+          delete parent.dataset.enemyPosition;
+          delete parent.dataset.enemyDepth;
         }
         this.enemies.forEach((enemy) =>
           enemy.setAlpha(
@@ -341,15 +366,13 @@ export function PhaserWorld({
         if (model.state !== GameState.walking) {
           if (this.hero.texture.key !== "scholar-idle") {
             this.hero.stop().setTexture("scholar-idle");
-            const size = Math.min(116 * (this.scale.width / WORLD.width), this.scale.height * 0.32);
-            this.hero.setDisplaySize(size, size);
+            this.hero.setDisplaySize(ACTOR_SIZE, ACTOR_SIZE);
             parent.dataset.walkFrame = this.hero.frame.name;
           }
         } else if (walking) {
           if (this.hero.texture.key !== "scholar") {
             this.hero.play("scholar-walk");
-            const size = Math.min(116 * (this.scale.width / WORLD.width), this.scale.height * 0.32);
-            this.hero.setDisplaySize(size, size);
+            this.hero.setDisplaySize(ACTOR_SIZE, ACTOR_SIZE);
           } else this.hero.anims.resume();
         } else this.hero.anims.pause();
         if (parent.dataset.heroTexture !== this.hero.texture.key)
