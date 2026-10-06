@@ -37,7 +37,7 @@ export class BattleLoot {
     this.age += dt;
     if (model.state === GameState.walking) this.walking += dt;
     const scale = this.scene.scale.width / WORLD.width;
-    const ground = model.playerY - 7;
+    const ground = model.playerY + 28;
     const offset = model.distance - this.origin;
     this.trails.clear();
     this.pieces.forEach((piece, i) => {
