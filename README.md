@@ -18,7 +18,7 @@ Start the API and web app together:
 npm run dev
 ```
 
-Open http://localhost:5173. Vite proxies /api to the Nerdungeon Express API on http://127.0.0.1:3001. Keep `PORT=3001` in backend/.env. Port 3000 may belong to another app; pointing the proxy there can return HTML instead of API JSON. To run services separately, use `npm run backend:dev` and `npm run frontend:dev`. Stop existing Nerdungeon dev processes before starting the combined command. Vite refuses a busy frontend port. Set VITE_API_URL in frontend/.env only when using another API origin. This is a web app; Expo Go and Android/iOS builds are no longer used.
+Open http://localhost:5173. Vite proxies /api to the Nerdungeon Express API on http://127.0.0.1:4000. Keep `PORT=4000` in backend/.env. Port 3000 may belong to another app; pointing the proxy there can return HTML instead of API JSON. To run services separately, use `npm run backend:dev` and `npm run frontend:dev`. Stop existing Nerdungeon dev processes before starting the combined command. Vite refuses a busy frontend port. Set VITE_API_URL in frontend/.env only when using another API origin. This is a web app; Expo Go and Android/iOS builds are no longer used.
 
 ## Local database
 
