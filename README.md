@@ -20,7 +20,18 @@ npm run dev
 
 Open http://localhost:5173. Vite proxies /api to the Nerdungeon Express API on http://127.0.0.1:3001. Keep `PORT=3001` in backend/.env. Port 3000 may belong to another app; pointing the proxy there can return HTML instead of API JSON. To run services separately, use `npm run backend:dev` and `npm run frontend:dev`. Stop existing Nerdungeon dev processes before starting the combined command. Vite refuses a busy frontend port. Set VITE_API_URL in frontend/.env only when using another API origin. This is a web app; Expo Go and Android/iOS builds are no longer used.
 
-Before starting, apply the Supabase migration, enable Anonymous Sign-Ins, and fill backend/frontend `.env` files as described in [backend/README.md](backend/README.md).
+## Local database
+
+The app uses a local Supabase stack in Docker for Auth, Postgres, and Storage. Start Docker Desktop, then run:
+
+```sh
+npm run supabase:start
+npm run supabase -- status --workdir backend -o env
+```
+
+Copy the local `API_URL` and `PUBLISHABLE_KEY` into `frontend/.env`. Set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` in `backend/.env` to the same local API URL and publishable key. Copy `SECRET_KEY` to `SUPABASE_SECRET_KEY` in `backend/.env` only. Keep secret keys out of the frontend and Git. The local config enables anonymous sign-in, and the existing game migration runs on startup.
+
+Then run `npm run dev` and open http://localhost:5173. Stop the local Supabase stack with `npm run supabase:stop`; Docker keeps its database volume between stops. Local data is separate from the hosted Supabase project. PDF generation still needs `GEMINI_API_KEY` in `backend/.env`; the tutorial and parallax work without it.
 
 ## Game and data
 

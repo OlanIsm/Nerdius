@@ -4,6 +4,9 @@
   "scripts": {
     "dev": "node scripts/dev.cjs",
     "start": "node scripts/dev.cjs",
+    "supabase": "node scripts/supabase.cjs",
+    "supabase:start": "node scripts/supabase.cjs start --workdir backend",
+    "supabase:stop": "node scripts/supabase.cjs stop --workdir backend",
     "frontend:dev": "npm --prefix frontend run dev",
     "web": "npm --prefix frontend run dev",
     "build": "npm --prefix frontend run build",

@@ -346,10 +346,16 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
       return route.fulfill({ json: gameSnapshot(state) });
     });
     let failGround = true;
-    await reduced.route(/_01_ground.*\.webp/, route => {
-      if (failGround) return route.abort();
-      return route.continue();
-    });
+    await reduced.route(
+      url =>
+        decodeURIComponent(url).includes(
+          '/savannah parallax/Savannah Parallax/compressed/1.webp',
+        ),
+      route => {
+        if (failGround) return route.abort();
+        return route.continue();
+      },
+    );
     await reduced.goto(process.env.APP_URL || 'http://localhost:5173', { waitUntil: 'networkidle' });
     await reduced.getByRole('button', { name: 'Continue Adventure', exact: true }).click();
     await reduced.getByRole('button', { name: 'Start Adventure', exact: true }).click();
