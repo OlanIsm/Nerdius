@@ -35,6 +35,8 @@ Then run `npm run dev` and open http://localhost:5173. Stop the local Supabase s
 
 ## Game and data
 
+See [architecture and maintenance](docs/architecture.md) for backend/frontend module boundaries, the upload sequence, concurrency, and verification limits.
+
 Phaser loads when entering Battle and is destroyed on exit. Doors slide shut before game assets load, remain closed for at least 1.5 seconds, and reopen when the scene is ready. The game stays inactive until opening completes. Walking stops during encounters, pause, and hidden browser tabs. Canvas resizes with the app shell. Reduced motion disables walking animation and door motion while keeping the loading hold.
 
 Express verifies answers, HP, rewards and progress. Supabase Auth creates one anonymous account per browser; Postgres and private Storage keep each account's data. Each account starts with one playable tutorial adventure, three regions with 10 questions each. PDF uploads up to 25 MB generate 1-3 regions with exactly 10 questions each through Gemini. DOCX still has starter chapters without generated questions.

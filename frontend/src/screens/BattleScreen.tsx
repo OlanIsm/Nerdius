@@ -4,7 +4,7 @@ import { Button, Icon, useReducedMotion } from "../components/GameUI";
 import type { WorldControls } from "../game/PhaserWorld";
 import { GameState, type GamePhase } from "../game/types";
 import type { ScreenProps } from "../types";
-import type { BattleView } from "../gameApi";
+import type { BattleView } from "../modules/game/types";
 import { BattleQuiz } from "../components/BattleQuiz";
 
 const status: Record<GamePhase, string> = {

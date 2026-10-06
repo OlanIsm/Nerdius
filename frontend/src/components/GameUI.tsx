@@ -84,22 +84,6 @@ export function Badge({
     </div>
   );
 }
-export function ImageBadge({
-  text,
-  source,
-  size = 20,
-}: {
-  text: string;
-  source: string;
-  size?: number;
-}) {
-  return (
-    <div className="badge">
-      <img src={source} alt="" width={size} height={size} />
-      <span style={ui.label}>{text}</span>
-    </div>
-  );
-}
 export function Meter({
   value,
   color = colors.teal,
@@ -135,34 +119,4 @@ export function Meter({
 }
 export function SectionTitle({ title }: { title: string }) {
   return <span style={ui.heading}>{title}</span>;
-}
-export function Tabs<T extends string>({
-  values,
-  selected,
-  onChange,
-}: {
-  values: readonly T[];
-  selected: T;
-  onChange: (value: T) => void;
-}) {
-  return (
-    <div className="tabs" role="tablist">
-      {values.map((value) => (
-        <button
-          key={value}
-          type="button"
-          role="tab"
-          aria-selected={value === selected}
-          onClick={() => onChange(value)}
-          style={{
-            backgroundColor: selected === value ? colors.teal : "transparent",
-            borderColor: selected === value ? colors.edge : "transparent",
-            color: selected === value ? colors.white : colors.wood,
-          }}
-        >
-          {value}
-        </button>
-      ))}
-    </div>
-  );
 }

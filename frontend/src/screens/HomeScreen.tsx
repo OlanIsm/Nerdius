@@ -10,12 +10,10 @@ import {
 } from "../components/GameUI";
 import { RealmFrame } from "../components/FantasyUI";
 import { colors, fonts, ui } from "../theme";
-import {
-  ExpeditionCard,
-  expeditions,
-  type Expedition,
-  type Region,
-} from "./AdventureScreen";
+import { ExpeditionCard } from "./AdventureScreen";
+import { expeditions } from "../modules/game/tutorial";
+import type { Expedition, Region } from "../modules/game/types";
+import { useForge } from "../modules/game/useForge";
 import type { ScreenProps } from "../types";
 export function HomeScreen({
   navigate,
@@ -39,60 +37,13 @@ export function HomeScreen({
   onForgeSettled: (result: "ready" | "failed") => void;
   onReadForge: () => void;
 }) {
-  const [file, setFile] = useState<string>();
-  const [asset, setAsset] = useState<File>();
-  // ponytail: one in-flight forge stays in the mounted Hub; persist jobs if reloads must retain tracking.
-  const [job, setJob] = useState<{
-    file: File;
-    startedAt: number;
-    status: "processing" | "ready" | "failed";
-    expedition?: Expedition;
-    error?: string;
-  }>();
-  const [expanded, setExpanded] = useState(false);
-  const minimized = useRef(false);
-  const pending = useRef(false);
-  const forging = job?.status === "processing";
+  const { file, job, forging, expanded, selectFile, forgeAdventure, minimize, expand } = useForge({
+    onForge, onForgeSettled, onReadForge, navigate, notify,
+  });
   const reducedMotion = useReducedMotion();
   const fileInput = useRef<HTMLInputElement>(null);
   function pickFile() {
     fileInput.current?.click();
-  }
-  function selectFile(asset: File | undefined) {
-    if (!asset) return;
-    if (
-      !/\.(pdf|docx)$/i.test(asset.name) ||
-      !asset.size ||
-      asset.size > 25 * 1024 * 1024
-    ) {
-      notify("Pilih PDF atau DOCX dengan ukuran maksimal 25 MB.");
-      return;
-    }
-    setFile(asset.name);
-    setAsset(asset);
-  }
-  async function forgeAdventure(source = asset) {
-    if (pending.current || !source) return;
-    pending.current = true;
-    minimized.current = false;
-    const startedAt = Date.now();
-    setJob({ file: source, startedAt, status: "processing" });
-    setExpanded(true);
-    onReadForge();
-    try {
-      const expedition = await onForge(source);
-      setJob({ file: source, startedAt, status: "ready", expedition });
-      onForgeSettled("ready");
-      if (!minimized.current) navigate("Expedition");
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Forge failed";
-      setJob({ file: source, startedAt, status: "failed", error: message });
-      onForgeSettled("failed");
-      if (!minimized.current) notify(message);
-    } finally {
-      pending.current = false;
-      setExpanded(false);
-    }
   }
   return (
     <div style={s.page} className="stack">
@@ -108,14 +59,13 @@ export function HomeScreen({
           event.currentTarget.value = "";
         }}
       />
-      {forging && expanded && (
+      {job && forging && expanded && (
         <ForgeDialog
           file={job.file.name}
           startedAt={job.startedAt}
           reducedMotion={reducedMotion}
           onMinimize={() => {
-            minimized.current = true;
-            setExpanded(false);
+            minimize();
             requestAnimationFrame(() => {
               const status = document.querySelector<HTMLElement>(
                 "[data-forge-status]",
@@ -298,7 +248,7 @@ export function HomeScreen({
               {forging ? (
                 <Button
                   label="View forging progress"
-                  onPress={() => setExpanded(true)}
+                  onPress={expand}
                 />
               ) : job.status === "ready" && job.expedition ? (
                 <Button
@@ -461,45 +411,6 @@ const s = {
   },
   allText: { fontFamily: fonts.heading, fontSize: 12, color: colors.teal },
   materials: { gap: 10 },
-  harvest: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingTop: 12,
-    paddingBottom: 12,
-    borderTopWidth: 1,
-    borderColor: "#cdbf9e",
-  },
-  harvestSeal: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: colors.sage,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  harvestTitle: { ...ui.title, fontSize: 14, marginBottom: 3 },
-  forgeOverlay: {
-    flex: "1 1 0%",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-    backgroundColor: "rgba(35,45,35,0.96)",
-  },
-  loadingArt: { width: 220, height: 220 },
-  loadingTitle: {
-    fontFamily: fonts.heading,
-    fontSize: 22,
-    textAlign: "center",
-    color: colors.gold,
-    marginTop: 16,
-  },
-  loadingFile: {
-    ...ui.body,
-    color: colors.parchment,
-    textAlign: "center",
-    marginTop: 10,
-  },
 } satisfies Record<string, CSSProperties>;
 function ForgeDialog({
   file,

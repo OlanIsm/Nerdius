@@ -13,7 +13,7 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
   lastAdventure: { expeditionId: 'test', chapter: 1 } };
 (async () => {
   const { applyGameAction, initialGame } = await import('../backend/src/modules/game/state.ts');
-  const { gameSnapshot } = await import('../backend/src/modules/game/index.ts');
+  const { gameSnapshot } = await import('../backend/src/modules/game/snapshot.ts');
   state.expeditions[0].regions[0].questionBank = initialGame().expeditions[0].regions[0].questionBank;
   state.expeditions[0].regions[0].questions = 10;
   const authSession = {

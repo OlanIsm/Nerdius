@@ -113,7 +113,6 @@ export type WorldControls = {
   model: FantasyGame;
   act: (action: () => void) => void;
   setActive: (active: boolean) => void;
-  setDebug: (bounds: boolean, triggers: boolean) => void;
 };
 export function PhaserWorld({
   onReady,
@@ -135,8 +134,6 @@ export function PhaserWorld({
     const parent = host.current!;
     let disposed = false;
     let active = false;
-    let bounds = false;
-    let triggers = false;
     let lastRevision = -1;
     const model = new FantasyGame(
       parent.clientHeight / (parent.clientWidth / WORLD.width),
@@ -147,7 +144,6 @@ export function PhaserWorld({
       private enemies: Phaser.GameObjects.Image[] = [];
       private shadows: Phaser.GameObjects.Ellipse[] = [];
       private heroShadow!: Phaser.GameObjects.Ellipse;
-      private guides!: Phaser.GameObjects.Graphics;
       private encounterKey = "";
       private loot!: BattleLoot;
       private dropped = false;
@@ -198,7 +194,6 @@ export function PhaserWorld({
         };
         this.hero.on("animationupdate", reportFrame);
         this.hero.on("animationstart", reportFrame);
-        this.guides = this.add.graphics().setDepth(15);
         this.loot = new BattleLoot(this);
         parent.dataset.layers = JSON.stringify(
           layers.map((layer) => layer.url),
@@ -217,11 +212,6 @@ export function PhaserWorld({
           setActive: (value) => {
             active = value;
             this.sync();
-          },
-          setDebug: (showBounds, showTriggers) => {
-            bounds = showBounds;
-            triggers = showTriggers;
-            this.drawGuides();
           },
         });
       }
@@ -312,24 +302,6 @@ export function PhaserWorld({
         if (parent.dataset.enemies !== String(this.enemies.length))
           parent.dataset.enemies = String(this.enemies.length);
       }
-      private drawGuides() {
-        this.guides.clear();
-        if (!bounds && !triggers) return;
-        const scale = this.scale.width / WORLD.width;
-        model.chunks.pool.forEach((chunk) => {
-          const left = (102 + model.playerY - chunk.y - chunk.height) * scale;
-          if (bounds)
-            this.guides
-              .lineStyle(2, 0xf7f1b0)
-              .strokeRect(left, 0, chunk.height * scale, this.scale.height);
-          if (triggers && chunk.definition.triggerY !== undefined) {
-            const x = left + (chunk.height - chunk.definition.triggerY) * scale;
-            this.guides
-              .lineStyle(2, 0xc43c61)
-              .lineBetween(x, 0, x, this.scale.height);
-          }
-        });
-      }
       sync() {
         if (!this.hero) return;
         const walking =
@@ -373,7 +345,6 @@ export function PhaserWorld({
         parent.dataset.lootCount = String(loot.count);
         parent.dataset.lootPhase = loot.phase;
         this.renderParallax();
-        this.drawGuides();
         this.sync();
       }
     }

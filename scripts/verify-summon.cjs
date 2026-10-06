@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const { chromium } = require('@playwright/test');
 (async () => {
   const { initialGame, applyGameAction } = await import('../backend/src/modules/game/state.ts');
-  const { gameSnapshot } = await import('../backend/src/modules/game/index.ts');
+  const { gameSnapshot } = await import('../backend/src/modules/game/snapshot.ts');
   const state = initialGame(); state.gems = 2500;
   const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe' });
   try {

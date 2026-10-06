@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { PDFDocument } from "pdf-lib";
 import { app } from "../src/app.ts";
 import { authClient, dataClient } from "../src/platform/supabase.ts";
-import type { GameData } from "../src/modules/game/state.ts";
+import type { GameData } from "../src/modules/game/types.ts";
 
 // Live smoke test: uses Gemini quota and a temporary anonymous Supabase account.
 const client = dataClient();

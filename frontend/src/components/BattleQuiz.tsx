@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import type { BattleView } from "../gameApi";
+import type { BattleView } from "../modules/game/types";
 import { Button } from "./GameUI";
 
 export function BattleQuiz({ battle, acknowledged, onAcknowledge, tutorial, onAnswer, onAdvance }: {

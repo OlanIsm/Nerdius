@@ -1,13 +1,9 @@
 import { randomInt } from "node:crypto";
 import { summonPool } from "./summon.ts";
-import { applyBattleAction, GameActionError, type Battle, type BattleResult } from "./battle.ts";
+import { applyBattleAction, GameActionError } from "./battle.ts";
 import { tutorialRegions } from "./tutorial.ts";
-export { GameActionError } from "./battle.ts";
 
-export type Question = { id: string; prompt: string; options: string[]; answerIndex: number; explanation: string; sourcePage: number };
-export type Region = { chapter: number; title: string; summary: string; topics: string[]; questions: number; enemies: number; material?: string; sourcePages?: number[]; questionBank?: Question[] };
-export type Expedition = { id: string; title: string; file: string; progress: number; regions: Region[] };
-export type GameData = { gold: number; gems: number; xp: number; favor: number; inventory: string[]; expeditions: Expedition[]; lastAdventure: { expeditionId: string; chapter: number } | null; battle?: Battle; battleHistory?: BattleResult[] };
+import type { Expedition, GameData } from "./types.ts";
 
 function chapters(titles: string[]) {
   return titles.map((title, index) => ({ chapter: index + 1, title, summary: `Kuasai konsep inti ${title.toLowerCase()} sebelum menghadapi encounter di akhir region.`, topics: [`Konsep dasar ${title}`, "Penerapan dan contoh penting", "Kesalahan umum yang harus dihindari"], questions: 10, enemies: index + 1 }));

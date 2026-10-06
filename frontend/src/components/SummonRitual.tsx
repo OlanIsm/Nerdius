@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { miniIcons } from "../assets";
 import { inventory } from "../data/inventory";
 import { Button, Icon, useReducedMotion } from "./GameUI";
-import type { SummonItem } from "../gameApi";
+import type { SummonItem } from "../modules/game/types";
 import type { SummonAudio } from "./summonAudio";
 
 type Reward = { name: string; rarity: SummonItem["rarity"] };

@@ -6,7 +6,7 @@ import { rarity } from "../theme";
 import type { ScreenProps } from "../types";
 import { SummonRitual, type Ritual } from "../components/SummonRitual";
 import { summonAudio } from "../components/summonAudio";
-import type { GameData, SummonItem } from "../gameApi";
+import type { GameData, SummonItem } from "../modules/game/types";
 
 export function GachaScreen({
   notify,

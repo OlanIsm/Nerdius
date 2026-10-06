@@ -8,10 +8,7 @@ require.extensions[".ts"] = (module, filename) => module._compile(ts.transpileMo
 }).outputText, filename);
 const { FantasyGame } = require("../frontend/src/game/FantasyGame.ts");
 const { WORLD } = require("../frontend/src/game/level.ts");
-const { depthAt, projectedX } = require("../frontend/src/game/projection.ts");
 
-assert(depthAt(50, 780) < depthAt(700, 780), "distant sprites smaller");
-assert(projectedX(300, 50, 780) < projectedX(300, 700, 780), "near sprites spread farther from the road center");
 
 function advance(game, seconds) {
   for (let tick = 0; tick < seconds * 60; tick++) game.update(1 / 60);

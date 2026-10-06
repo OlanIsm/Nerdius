@@ -9,45 +9,9 @@ import {
 } from "../components/AdventurePath";
 import { RealmFrame, RealmButton, fantasy } from "../components/FantasyUI";
 import { colors, fonts, ui } from "../theme";
-export type Region = {
-  chapter: number;
-  title: string;
-  summary: string;
-  topics: string[];
-  questions: number;
-  enemies: number;
-  material?: string;
-  sourcePages?: number[];
-};
-export type Expedition = {
-  id?: string;
-  title: string;
-  file: string;
-  progress: number;
-  regions: Region[];
-};
-const regions = (topics: string[]): Region[] =>
-  topics.slice(0, 3).map((title, index) => ({
-    chapter: index + 1,
-    title,
-    summary: `Kuasai konsep inti ${title.toLowerCase()} sebelum menghadapi encounter di akhir region.`,
-    topics: [
-      `Konsep dasar ${title}`,
-      "Penerapan dan contoh penting",
-      "Kesalahan umum yang harus dihindari",
-    ],
-    questions: 10,
-    enemies: index + 1,
-  }));
-export const expeditions: Expedition[] = [
-  {
-    id: "tutorial",
-    title: "Tutorial — Fotosintesis",
-    file: "Tutorial",
-    progress: 0,
-    regions: regions(["Reaksi Terang", "Siklus Calvin", "Metabolisme"]),
-  },
-];
+import type { Expedition, Region } from "../modules/game/types";
+import { expeditions } from "../modules/game/tutorial";
+
 export function AdventureScreen({
   onSelect,
   onInspect,
