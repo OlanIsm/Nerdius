@@ -101,7 +101,7 @@ try {
     }
   }
   const results = await Promise.all([action({ action: "complete", battleId }), action({ action: "complete", battleId })]);
-  assert.ok(results.every((result) => result.battle.status === "passed" && result.gold === snapshot.gold + 450 && result.xp === snapshot.xp + 100));
+  assert.ok(results.every((result) => result.battle.status === "passed" && result.gold === snapshot.gold + 950 && result.gems === snapshot.gems + 250 && result.xp === snapshot.xp + 100));
   const final = await fetch(base, { headers });
   const finalState = await final.json();
   assert.equal(finalState.battleHistory.length, 1);

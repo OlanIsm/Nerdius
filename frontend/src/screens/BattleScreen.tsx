@@ -49,6 +49,7 @@ export function BattleScreen({
   const [, render] = useState(0);
   const [menu, setMenu] = useState<"pause" | "restart" | "exit" | null>(null);
   const [answering, setAnswering] = useState(false);
+  const [acknowledged, setAcknowledged] = useState<string>();
   const menuDialog = useRef<HTMLDialogElement>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string>();
@@ -139,6 +140,11 @@ export function BattleScreen({
   }, [gameState, onComplete]);
   const inEncounter =
     gameState === GameState.encounter || gameState === GameState.bossEncounter;
+  useEffect(() => {
+    if (world && inEncounter && battle?.feedback?.correct && battle.correct % 2 === 0 && battle.feedback.questionId !== acknowledged) {
+      world.act(() => world.model.defeatEnemy());
+    }
+  }, [world, inEncounter, battle, acknowledged]);
   function retry() {
     setWorld(undefined);
     setLoadError(false);
@@ -179,7 +185,7 @@ export function BattleScreen({
                 <span aria-hidden="true">&#9776;</span>
               </button>
             </header>
-            <HealthBar enemy hp={battle.enemyHp} max={battle.enemyMaxHp} label={`Enemy ${battle.enemiesDefeated + (battle.enemyHp > 0 ? 1 : 0)}`} />
+            {inEncounter && !game.enemyDefeated && <HealthBar enemy hp={battle.enemyHp} max={battle.enemyMaxHp} label={`Enemy ${battle.enemiesDefeated + (battle.enemyHp > 0 ? 1 : 0)}`} />}
             {!inEncounter && game.state !== GameState.result && (
               <div className="east"><Icon name="arrow-right" size={18} color="#fff4c8" />EAST</div>
             )}
@@ -211,7 +217,7 @@ export function BattleScreen({
               </h2>
               {!inEncounter && <p>
                 {game.state === GameState.result
-                    ? `${battle.correct} / ${battle.total} correct. ${battle.status === "passed" ? `+${battle.goldReward} gold · +${battle.xpReward} XP` : battle.status === "failed" ? "Your HP reached 0. Retry the chapter." : "Saving your combat result."}`
+                    ? `${battle.correct} / ${battle.total} correct. ${battle.status === "passed" ? `+${battle.goldReward} gold · +${battle.gemsReward ?? 0} gems / +${battle.xpReward} XP` : battle.status === "failed" ? "Your HP reached 0. Retry the chapter." : "Saving your combat result."}`
                     : game.state === GameState.encounterComplete
                       ? "The trail opens up again."
                       : "Follow the path toward the next clearing."}
@@ -225,14 +231,15 @@ export function BattleScreen({
           {inEncounter && (
             <BattleQuiz
               battle={battle}
-              checkpoint={game.cleared + 1}
+              acknowledged={acknowledged}
+              onAcknowledge={setAcknowledged}
               tutorial={tutorial}
               onAnswer={async (questionId, selectedIndex) => {
                 setAnswering(true);
                 try { await onAnswer(questionId, selectedIndex); }
                 finally { setAnswering(false); }
               }}
-              onAdvance={() => world.act(() => game.completeEncounter())}
+              onAdvance={() => world.act(() => game.completeEncounter(battle.finished))}
             />
           )}
           {game.state === GameState.result && (
@@ -289,7 +296,7 @@ export function BattleScreen({
             <Button label="Restart" onPress={() => setMenu("restart")} />
             <Button label="Exit" style={exitStyle} onPress={() => setMenu("exit")} />
           </> : <>
-            <p>{menu === "restart" ? "Your answers and HP in this attempt will reset. Your earned rewards stay safe." : "Your answers and HP in this attempt will reset. The next start begins at question 1. Earned rewards stay safe."}</p>
+            <p>{menu === "restart" ? "Restart resets your answers and HP. Unclaimed gold and gems from this attempt will be lost." : "Exit resets this attempt. Unclaimed gold and gems will be lost. Win the chapter to keep your drops."}</p>
             {saveError && <p className="quiz-error" role="alert">{saveError}</p>}
             <Button label={saving ? (menu === "exit" ? "Exiting..." : "Restarting...") : menu === "restart" ? "Confirm restart" : "Confirm exit"} disabled={saving} tone="gold" style={menu === "exit" ? exitStyle : undefined} onPress={() => {
               setSaving(true); setSaveError(undefined);

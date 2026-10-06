@@ -132,6 +132,7 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
       await page.getByTestId('gate-opening').waitFor({ state: 'hidden' });
       assert.equal(await page.locator('canvas').count(), 1, 'one Phaser instance');
     }
+    const gemsBeforeBattle = state.gems;
     await enter(true);
     const world = page.getByTestId('phaser-world');
     assert.equal(await world.getAttribute('data-renderer'), 'WebGL');
@@ -171,10 +172,10 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
       const bounds = await page.getByRole('button', { name: buttonLabel, exact: true }).boundingBox();
       assert(bounds.y >= 0 && bounds.y + bounds.height <= page.viewportSize().height, 'Action button stays in viewport');
       const hearts = page.locator('.health-heart');
-      assert.equal(await hearts.count(), 2);
+      assert.equal(await hearts.count(), await page.locator('#enemy-hp').count() + 1);
       assert(await hearts.first().evaluate(img => img.complete && img.naturalWidth > 0 && img.src.includes('Heart')), 'HP uses loaded Heart asset');
     }
-    for (let encounter = 0; encounter < 3; encounter++) {
+    for (let encounter = 0; encounter < 5; encounter++) {
       await page.getByRole('button', { name: 'Submit answer', exact: true }).waitFor();
       const visual = await page.getByTestId('combat-visual').boundingBox();
       const quiz = await page.getByTestId('combat-quiz').boundingBox();
@@ -201,7 +202,7 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
         await page.screenshot({ path: 'test-results/phaser-idle.png' });
       }
       const bank = state.expeditions[0].regions[0].questionBank;
-      const target = Math.ceil(bank.length * (encounter + 1) / 3);
+      const target = (encounter + 1) * 2;
       while (state.battle.answers.length < target) {
         const question = bank[state.battle.answers.length];
         await page.setViewportSize({ width: 360, height: 640 });
@@ -223,14 +224,38 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
           await page.keyboard.press('Escape');
           await page.setViewportSize({ width: 430, height: 932 });
         }
+        if (state.battle.answers.length % 2 === 0) {
+          await page.waitForFunction(() => document.querySelector('[data-testid="phaser-world"]').dataset.enemies === '0');
+          assert.equal(await page.locator('#enemy-hp').count(), 0, 'Defeated enemy has no HP bar');
+          await page.waitForFunction(() => document.querySelector('[data-testid="phaser-world"]').dataset.lootPhase === 'ground');
+          if (encounter === 0) {
+            await page.screenshot({ path: 'test-results/combat-loot-ground-mobile.png' });
+            await page.setViewportSize({ width: 1280, height: 900 });
+            await page.screenshot({ path: 'test-results/combat-loot-ground-desktop.png' });
+            await page.setViewportSize({ width: 430, height: 932 });
+            await page.getByRole('button', { name: 'Battle menu', exact: true }).click();
+            const lootCount = await world.getAttribute('data-loot-count');
+            await page.waitForTimeout(250);
+            assert.equal(await world.getAttribute('data-loot-count'), lootCount, 'Pause freezes drops');
+            await page.getByRole('button', { name: 'Continue', exact: true }).click();
+          }
+        }
         await page.getByRole('button', { name: 'Next', exact: true }).click();
       }
-      if (encounter === 0) assert.equal(await world.getAttribute('data-enemies'), '1');
-      if (encounter < 2) await page.waitForFunction(() => document.querySelector('[data-testid="phaser-world"]').dataset.heroTexture === 'scholar');
+      await page.waitForFunction(() => document.querySelector('[data-testid="phaser-world"]').dataset.phase === 'walking');
+      assert.equal(await page.locator('#enemy-hp').count(), 0, 'No enemy HP while walking');
+      assert.equal(await world.getAttribute('data-enemies'), '0', 'No monster between encounters');
+      await page.waitForFunction(() => document.querySelector('[data-testid="phaser-world"]').dataset.lootPhase === 'collecting');
+      if (encounter === 0) await page.screenshot({ path: 'test-results/combat-loot-collect-mobile.png' });
+      await page.waitForFunction(() => document.querySelector('[data-testid="phaser-world"]').dataset.lootCount === '0');
+      assert.equal(state.gold, 1450, 'Drops do not enter balance before complete');
+
     }
     await page.getByTestId('fight-status').getByText('Chapter cleared!', { exact: true }).waitFor();
     assert.equal(await world.getAttribute('data-hero-texture'), 'scholar-idle', 'result uses standing pose');
     assert.equal(actions.filter(action => action.action === 'complete').length, 1, 'completion submitted once');
+    assert.equal(state.gold, 2400);
+    assert.equal(state.gems, gemsBeforeBattle + 250);
     const goldBeforeFailure = state.gold;
     await page.getByRole('button', { name: 'Retry chapter', exact: true }).click();
     const bank = state.expeditions[0].regions[0].questionBank;
@@ -238,12 +263,22 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
     await page.getByRole('button', { name: 'Submit answer', exact: true }).click();
     await page.getByText('Not quite', { exact: true }).waitFor();
     assert.equal(await page.locator('#player-hp').getAttribute('value'), '450');
+    await page.getByRole('button', { name: 'Next', exact: true }).click();
+    for (const question of bank.slice(1, 3)) {
+      await page.getByRole('radio', { name: question.options[question.answerIndex], exact: true }).check();
+      await page.getByRole('button', { name: 'Submit answer', exact: true }).click();
+      await page.getByText('Correct!', { exact: true }).waitFor();
+      await page.getByRole('button', { name: 'Next', exact: true }).click();
+    }
+    await page.waitForFunction(() => document.querySelector('[data-testid="phaser-world"]').dataset.phase === 'walking');
+    assert.equal(await page.locator('#enemy-hp').count(), 0);
+    const gemsBeforeExit = state.gems;
     rejectExit = true;
     await page.getByRole('button', { name: 'Battle menu', exact: true }).click();
     await page.getByRole('button', { name: 'Exit', exact: true }).click();
     await page.getByRole('button', { name: 'Confirm exit', exact: true }).click();
     await page.getByRole('alert').getByText('Could not exit battle. Try again.', { exact: true }).waitFor();
-    assert.equal(state.battle.answers.length, 1, 'Failed exit preserves accepted answer');
+    assert.equal(state.battle.answers.length, 3, 'Failed exit preserves accepted answers and pending drops');
     assert.equal(await page.locator('canvas').count(), 1, 'Failed exit stays in battle');
     await page.getByRole('button', { name: 'Cancel', exact: true }).click();
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
@@ -254,6 +289,7 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
     await page.getByRole('button', { name: 'Start Adventure', exact: true }).waitFor();
     assert.equal(state.battle, undefined, 'Exit clears saved attempt');
     assert.equal(state.gold, earnedGold);
+    assert.equal(state.gems, gemsBeforeExit, "Exit discards pending gems");
     assert.equal(state.expeditions[0].progress, chapterProgress);
     await page.reload({ waitUntil: 'networkidle' });
     await enter();

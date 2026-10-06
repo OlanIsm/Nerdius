@@ -3,7 +3,7 @@ import { encounters, WORLD } from "./level";
 import { GameState, type GamePhase, type ActiveEncounter } from "./types";
 
 const transitions: Record<GamePhase, readonly GamePhase[]> = {
-  walking: [GameState.encounterStarting],
+  walking: [GameState.encounterStarting, GameState.result],
   encounterStarting: [GameState.encounter, GameState.bossEncounter],
   encounter: [GameState.encounterComplete],
   bossEncounter: [GameState.encounterComplete],
@@ -22,6 +22,8 @@ export class FantasyGame {
   paused = false;
   revision = 0;
   cleared = 0;
+  enemyDefeated = false;
+  private finished = false;
   encounter: ActiveEncounter | null = null;
   private elapsed = 0;
   private debugStop: number | null = null;
@@ -63,14 +65,22 @@ export class FantasyGame {
 
   private beginEncounter(spawn?: Omit<ActiveEncounter, "debug">) {
     this.encounter = spawn
-      ? { ...spawn, debug: false }
+      ? { ...spawn, count: 1, debug: false }
       : { count: 1, boss: false, name: "Forest Imp", debug: true };
     this.debugStop = null;
+    this.enemyDefeated = false;
     this.transition(GameState.encounterStarting);
   }
 
-  completeEncounter() {
+  defeatEnemy() {
+    if (this.enemyDefeated) return;
+    this.enemyDefeated = true;
+    this.revision++;
+  }
+
+  completeEncounter(finished = false) {
     if (this.state !== GameState.encounter && this.state !== GameState.bossEncounter) return;
+    this.finished = finished;
     this.cleared++;
     this.transition(GameState.encounterComplete);
   }
@@ -87,14 +97,14 @@ export class FantasyGame {
       if (this.state === GameState.encounterStarting && this.elapsed >= WORLD.revealSeconds) {
         this.transition(this.encounter?.boss ? GameState.bossEncounter : GameState.encounter);
       } else if (this.state === GameState.encounterComplete && this.elapsed >= WORLD.completeSeconds) {
-        const boss = this.encounter?.boss;
         this.encounter = null;
-        this.transition(boss ? GameState.result : GameState.walking);
+        this.transition(this.finished && !this.enemyDefeated ? GameState.result : GameState.walking);
       }
       return;
     }
 
     this.elapsed += dt;
+    if (this.finished && this.elapsed >= 3) { this.transition(GameState.result); return; }
     const remaining = this.debugStop === null ? Infinity : Math.max(0, this.debugStop - this.distance);
     const brakingDistance = this.speed * WORLD.brakeSeconds / 2;
     let movement: number;
@@ -115,8 +125,8 @@ export class FantasyGame {
     this.distance += movement;
     this.walkTime += dt;
     if (reached) this.beginEncounter();
-    else if (this.debugStop === null && this.elapsed >= WORLD.walkSeconds && this.nextEncounter < encounters.length) {
-      this.beginEncounter(encounters[this.nextEncounter++]);
+    else if (this.debugStop === null && !this.finished && this.elapsed >= (this.cleared ? 5.5 : WORLD.walkSeconds)) {
+      this.beginEncounter(encounters[this.nextEncounter++ % encounters.length]);
     }
   }
 }

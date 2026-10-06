@@ -50,17 +50,19 @@ test("failed attempts save results without rewards; a passing retry rewards once
   questions.forEach((question, index) => applyGameAction(game, { action: "answer", battleId: newId, questionId: question.id, selectedIndex: index === 0 ? (question.answerIndex + 1) % 4 : question.answerIndex }));
   applyGameAction(game, { action: "complete", battleId: newId });
   assert.equal(game.battle!.status, "passed");
-  assert.equal(game.gold, 1900);
+  assert.equal(game.gold, 2300);
   assert.equal(game.xp, 100);
   applyGameAction(game, { action: "complete", battleId: newId });
   assert.equal(game.battleHistory!.length, 2);
-  assert.equal(game.gold, 1900);
+  assert.equal(game.gold, 2300);
   applyGameAction(game, { action: "start", expeditionId: "tutorial", chapter: 1 });
   const replayId = game.battle!.id;
   questions.forEach((question) => applyGameAction(game, { action: "answer", battleId: replayId, questionId: question.id, selectedIndex: question.answerIndex }));
   applyGameAction(game, { action: "complete", battleId: replayId });
-  assert.equal(game.gold, 1900);
-  assert.equal(game.battle!.goldReward, 0);
+  assert.equal(game.gold, 2800);
+  assert.equal(game.battle!.goldReward, 500);
+  assert.equal(game.battle!.gemsReward, 250);
+  assert.equal(game.xp, 100, "Chapter bonus is not paid twice");
 });
 
 test("ten-question combat wins with remaining HP, loses at zero, and enemy respawns after two hits", () => {
@@ -133,4 +135,34 @@ test("exit discards chapter answers without removing completed progress or resou
   assert.equal(battleSnapshot(game)!.enemyHp, 100);
   assert.throws(() => applyGameAction(game, exit));
   assert.throws(() => applyGameAction(game, { action: "answer", battleId: oldId, questionId: questions[1].id, selectedIndex: 0 }));
+});
+
+
+test("monster drops stay pending until victory; exit/restart discard them and complete retries pay once", () => {
+  const game = initialGame();
+  const bank = game.expeditions[0].regions[0].questionBank!;
+  const gold = game.gold, gems = game.gems;
+  const start = () => { applyGameAction(game, { action: "start", expeditionId: "tutorial", chapter: 1 }); return game.battle!.id; };
+  const answer = (id: string, index: number) => applyGameAction(game, { action: "answer", battleId: id, questionId: bank[index].id, selectedIndex: bank[index].answerIndex });
+  let id = start();
+  answer(id, 0); answer(id, 1); answer(id, 1);
+  assert.equal(battleSnapshot(game)!.pendingGold, 100);
+  assert.equal(battleSnapshot(game)!.pendingGems, 50);
+  assert.equal(game.gold, gold); assert.equal(game.gems, gems);
+  applyGameAction(game, { action: "restart", battleId: id, expeditionId: "tutorial", chapter: 1 });
+  assert.equal(battleSnapshot(game)!.pendingGold, 0);
+  id = game.battle!.id; answer(id, 0); answer(id, 1);
+  applyGameAction(game, { action: "exit", battleId: id });
+  assert.equal(game.gold, gold); assert.equal(game.gems, gems);
+  assert.equal(battleSnapshot(game), null);
+  id = start();
+  bank.forEach((_, index) => answer(id, index));
+  assert.equal(game.gold, gold); assert.equal(game.gems, gems);
+  applyGameAction(game, { action: "complete", battleId: id });
+  applyGameAction(game, { action: "complete", battleId: id });
+  assert.equal(game.gold, gold + 450 + 500);
+  assert.equal(game.gems, gems + 250);
+  assert.equal(battleSnapshot(game)!.pendingGold, 0);
+  assert.equal(battleSnapshot(game)!.pendingGems, 0);
+  assert.equal(game.battleHistory!.length, 1);
 });

@@ -24,7 +24,8 @@ export type BattleView = {
   status: "active" | "passed" | "failed";
   total: number; correct: number;
   playerHp: number; playerMaxHp: number; enemyHp: number; enemyMaxHp: number; enemiesDefeated: number; finished: boolean;
-  goldReward: number; xpReward: number;
+  goldReward: number; gemsReward?: number; xpReward: number;
+  pendingGold: number; pendingGems: number;
   answers: { questionId: string; selectedIndex: number; correct: boolean }[];
   question: BattleQuestion | null;
   feedback: (BattleQuestion & { questionId: string; selectedIndex: number; correct: boolean; answerIndex: number; explanation: string }) | null;

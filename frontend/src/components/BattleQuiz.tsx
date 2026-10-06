@@ -2,20 +2,18 @@ import { useRef, useState } from "react";
 import type { BattleView } from "../gameApi";
 import { Button } from "./GameUI";
 
-export function BattleQuiz({ battle, checkpoint, tutorial, onAnswer, onAdvance }: {
-  battle: BattleView; checkpoint: number; tutorial: boolean;
+export function BattleQuiz({ battle, acknowledged, onAcknowledge, tutorial, onAnswer, onAdvance }: {
+  battle: BattleView; acknowledged?: string; onAcknowledge: (id: string) => void; tutorial: boolean;
   onAnswer: (questionId: string, selectedIndex: number) => Promise<void>;
   onAdvance: () => void;
 }) {
   const [selected, setSelected] = useState<number>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
-  const [acknowledged, setAcknowledged] = useState<string>();
   const pending = useRef(false);
-  const previousCheckpoint = Math.ceil(battle.total * Math.min(checkpoint - 1, 3) / 3);
-  const feedback = battle.feedback && battle.feedback.questionId !== acknowledged && battle.answers.length > previousCheckpoint ? battle.feedback : null;
+  const feedback = battle.feedback && battle.feedback.questionId !== acknowledged ? battle.feedback : null;
   const question = battle.question;
-  const cleared = battle.finished || battle.answers.length >= Math.ceil(battle.total * Math.min(checkpoint, 3) / 3);
+  const cleared = battle.finished || Boolean(battle.feedback?.correct && battle.correct % 2 === 0 && feedback);
   async function submit() {
     if (!question || selected === undefined || pending.current) return;
     pending.current = true;
@@ -39,7 +37,7 @@ export function BattleQuiz({ battle, checkpoint, tutorial, onAnswer, onAdvance }
           <div className="feedback-explanation"><p>{feedback.explanation}</p></div>
           {!feedback.correct && <p className="feedback-correction"><strong>Correction:</strong> {feedback.options[feedback.answerIndex]}</p>}
           <Button label="Next" tone="gold" onPress={() => {
-            setAcknowledged(feedback.questionId);
+            onAcknowledge(feedback.questionId);
             if (cleared) onAdvance();
           }} />
         </div>

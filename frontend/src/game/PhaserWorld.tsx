@@ -4,6 +4,8 @@ import atlas from "../../assets/character/mc-walk/spritesheet.json";
 import { FantasyGame } from "./FantasyGame";
 import { GameState } from "./types";
 import { WORLD } from "./level";
+import { icons } from "../assets";
+import { BattleLoot } from "./BattleLoot";
 
 const walkTexture = new URL(
   "../../assets/character/mc-walk/spritesheet.png",
@@ -147,6 +149,8 @@ export function PhaserWorld({
       private heroShadow!: Phaser.GameObjects.Ellipse;
       private guides!: Phaser.GameObjects.Graphics;
       private encounterKey = "";
+      private loot!: BattleLoot;
+      private dropped = false;
       preload() {
         this.load.on("loaderror", () => {
           if (!disposed) onError();
@@ -154,6 +158,8 @@ export function PhaserWorld({
         this.load.atlas("scholar", walkTexture, atlas);
         this.load.image("scholar-idle", idleTexture);
         this.load.image("soda", enemyTexture);
+        this.load.image("loot-coin", icons.coins);
+        this.load.image("loot-gem", icons.gems);
         layers.forEach((layer) => this.load.image(layer.name, layer.url));
       }
       create() {
@@ -162,6 +168,8 @@ export function PhaserWorld({
           !this.textures.exists("scholar") ||
           !this.textures.exists("scholar-idle") ||
           !this.textures.exists("soda") ||
+          !this.textures.exists("loot-coin") ||
+          !this.textures.exists("loot-gem") ||
           layers.some((layer) => !this.textures.exists(layer.name))
         ) {
           onError();
@@ -191,6 +199,7 @@ export function PhaserWorld({
         this.hero.on("animationupdate", reportFrame);
         this.hero.on("animationstart", reportFrame);
         this.guides = this.add.graphics().setDepth(15);
+        this.loot = new BattleLoot(this);
         parent.dataset.layers = JSON.stringify(
           layers.map((layer) => layer.url),
         );
@@ -262,7 +271,7 @@ export function PhaserWorld({
       private updateEnemies(force = false) {
         const encounter = model.encounter;
         const visible =
-          encounter && model.state !== GameState.encounterStarting;
+          encounter && !model.enemyDefeated && (model.state === GameState.encounter || model.state === GameState.bossEncounter);
         const key = visible ? `${encounter.count}:${encounter.boss}` : "";
         if (key !== this.encounterKey || force) {
           this.encounterKey = key;
@@ -345,7 +354,11 @@ export function PhaserWorld({
         } else this.hero.anims.pause();
         if (parent.dataset.heroTexture !== this.hero.texture.key)
           parent.dataset.heroTexture = this.hero.texture.key;
+        if (model.enemyDefeated && !this.dropped) { this.loot.burst(model.distance); this.dropped = true; }
+        if (!model.enemyDefeated) this.dropped = false;
         this.updateEnemies();
+        parent.dataset.phase = model.state;
+        parent.dataset.distance = String(model.distance);
         const revision = model.revision + model.chunks.revision;
         if (lastRevision !== revision) {
           lastRevision = revision;
@@ -354,7 +367,11 @@ export function PhaserWorld({
       }
       update(_time: number, delta: number) {
         if (disposed || !this.hero) return;
-        if (active && !document.hidden) model.update(delta / 1000);
+        const dt = active && !document.hidden && !model.paused ? Math.min(delta / 1000, WORLD.maxDelta) : 0;
+        model.update(dt);
+        const loot = this.loot.update(dt, model, motion.current);
+        parent.dataset.lootCount = String(loot.count);
+        parent.dataset.lootPhase = loot.phase;
         this.renderParallax();
         this.drawGuides();
         this.sync();

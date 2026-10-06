@@ -2,7 +2,7 @@ import type { GameData, Question, Region } from "./state.ts";
 
 export class GameActionError extends Error {}
 export type Answer = { questionId: string; selectedIndex: number; correct: boolean };
-export type Battle = { id: string; expeditionId: string; chapter: number; answers: Answer[]; status: "active" | "passed" | "failed"; goldReward: number; xpReward: number };
+export type Battle = { id: string; expeditionId: string; chapter: number; answers: Answer[]; status: "active" | "passed" | "failed"; goldReward: number; gemsReward?: number; xpReward: number };
 export type BattleResult = Battle & { total: number; correct: number; completedAt: string };
 
 function combat(battle: Battle, total: number) {
@@ -75,6 +75,13 @@ export function applyBattleAction(game: GameData, body: Record<string, unknown>)
     game.gold += battle.goldReward;
     game.xp += battle.xpReward;
   }
+  if (battle.status === "passed") {
+    const dropGold = outcome.enemiesDefeated * 100;
+    battle.goldReward += dropGold;
+    battle.gemsReward = outcome.enemiesDefeated * 50;
+    game.gold += dropGold;
+    game.gems += battle.gemsReward;
+  }
   // ponytail: retain the latest 20 completed attempts in the state row; use a result table for longer history.
   game.battleHistory = [...(game.battleHistory ?? []), { ...structuredClone(battle), total: questions.length, correct, completedAt: new Date().toISOString() }].slice(-20);
 }
@@ -91,6 +98,8 @@ export function battleSnapshot(game: GameData) {
   return {
     ...battle, total: questions.length, correct: battle.answers.filter((answer) => answer.correct).length,
     ...hp,
+    pendingGold: battle.status === "active" ? hp.enemiesDefeated * 100 : 0,
+    pendingGems: battle.status === "active" ? hp.enemiesDefeated * 50 : 0,
     question: next ? publicQuestion(next) : null,
     feedback: previous && answered ? { ...publicQuestion(answered), ...previous, answerIndex: answered.answerIndex, explanation: answered.explanation } : null,
   };

@@ -37,9 +37,11 @@ test("new accounts start with only the tutorial and chapter rewards cannot be cl
   }
   applyGameAction(game, { action: "complete", battleId });
   assert.equal(game.expeditions[0].progress, 33);
-  assert.equal(game.gold, 1900);
+  assert.equal(game.gold, 2400);
+  assert.equal(game.gems, 570);
   applyGameAction(game, { action: "complete", battleId });
-  assert.equal(game.gold, 1900);
+  assert.equal(game.gold, 2400);
+  assert.equal(game.gems, 570);
   assert.throws(() => applyGameAction(game, { action: "start", expeditionId: "tutorial", chapter: 4 }), GameActionError);
 });
 

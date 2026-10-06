@@ -83,7 +83,8 @@ const { createClient } = require('../backend/node_modules/@supabase/supabase-js'
     }
     await page.getByTestId('fight-status').getByText('Chapter cleared!', { exact: true }).waitFor();
     const completed = await admin.from('game_states').select('state').eq('user_id', userId).single();
-    assert.equal(completed.data.state.gold, initial.gold + 450);
+    assert.equal(completed.data.state.gold, initial.gold + 850);
+    assert.equal(completed.data.state.gems, initial.gems + 200);
     assert.equal(completed.data.state.battleHistory.length, 1);
     await page.screenshot({ path: 'test-results/learning-result-mobile.png' });
     await page.getByRole('button', { name: 'Battle menu', exact: true }).click();
@@ -133,8 +134,9 @@ const { createClient } = require('../backend/node_modules/@supabase/supabase-js'
     }
     await page.getByTestId('fight-status').getByText('Chapter cleared!', { exact: true }).waitFor();
     const finished = await admin.from('game_states').select('state').eq('user_id', userId).single();
-    assert.equal(finished.data.state.gold, initial.gold + 900);
+    assert.equal(finished.data.state.gold, initial.gold + 1800);
     assert.equal(finished.data.state.battle.id, pdfBattle.battle.id);
+    assert.equal(finished.data.state.gems, initial.gems + 450);
     assert.equal(finished.data.state.battleHistory.length, 2);
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.screenshot({ path: 'test-results/learning-result-desktop.png' });
@@ -144,7 +146,7 @@ const { createClient } = require('../backend/node_modules/@supabase/supabase-js'
     await page.getByRole('button', { name: 'Start Adventure', exact: true }).waitFor();
     await page.reload({ waitUntil: 'networkidle' });
     const fresh = await admin.from('game_states').select('state').eq('user_id', userId).single();
-    assert.equal(fresh.data.state.gold, initial.gold + 900);
+    assert.equal(fresh.data.state.gold, initial.gold + 1800);
     assert.equal(fresh.data.state.battle, undefined, 'Confirmed exit removes the saved attempt');
     assert.equal(users.size, 1, 'Reload preserves the browser account');
     assert.deepEqual(errors, []);

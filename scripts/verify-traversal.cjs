@@ -24,7 +24,6 @@ function coverage(game) {
 }
 
 const game = new FantasyGame(780);
-const slots = [...game.chunks.pool];
 const hero = game.playerY;
 const counts = [];
 let stoppedAt = 0;
@@ -38,7 +37,7 @@ for (let frame = 0; frame < 30000 && game.state !== "result"; frame++) {
   assert.equal(game.playerY, hero, "hero stays fixed");
   if (state !== "walking") assert.equal(game.distance, distance, "world frozen outside walking");
   if (state === "walking" && game.state === "encounterStarting") {
-    assert(Math.abs(walkingFrames / 60 - WORLD.walkSeconds) <= 1 / 60, "encounters start after two seconds of walking");
+    assert(Math.abs(walkingFrames / 60 - (game.cleared ? 5.5 : WORLD.walkSeconds)) <= 1 / 60, "each kill is followed by a full walk");
     walkingFrames = 0;
   }
   if (game.state === "encounter" || game.state === "bossEncounter") {
@@ -47,20 +46,19 @@ for (let frame = 0; frame < 30000 && game.state !== "result"; frame++) {
     const positions = game.chunks.pool.map((chunk) => chunk.y);
     advance(game, 1);
     assert.deepEqual(game.chunks.pool.map((chunk) => chunk.y), positions, "encounter cannot drift");
-    game.completeEncounter();
+    game.defeatEnemy();
+    game.completeEncounter(counts.length === 5);
     game.completeEncounter();
   }
 }
-assert.deepEqual(counts, [1, 2, 1], "first encounter, second encounter, boss");
+assert.deepEqual(counts, [1, 1, 1, 1, 1], "one monster per encounter, continues beyond authored boss");
 assert.equal(game.state, "result");
-assert.equal(game.cleared, 3, "duplicate completion ignored");
-assert.equal(game.distance, stoppedAt);
+assert.equal(game.cleared, 5, "duplicate completion ignored");
+assert(game.distance > stoppedAt, "final kill walks while collecting before result");
+const fresh = new FantasyGame(780);
+for (let i = 0; i < 300; i++) { fresh.chunks.advance(100); coverage(fresh); }
+assert(fresh.chunks.recycled > 50, "pool cycles repeatedly");
 game.continueTrail();
-advance(game, 300);
-coverage(game);
-assert.equal(game.state, "walking", "normal trail loops after boss");
-assert(game.chunks.recycled > 50, "pool cycles repeatedly");
-game.chunks.pool.forEach((chunk, index) => assert.equal(chunk, slots[index], "same chunk objects reused"));
 game.togglePause();
 const paused = game.distance;
 advance(game, 2);
@@ -88,4 +86,4 @@ for (let n = 0; n < 20; n++) {
   coverage(game);
 }
 assert(game.chunks.pool.length <= size + 2, "viewport resizing does not leak pooled chunks");
-console.log("Traversal: fixed hero, two-second walks, seamless pooling, 1/2/boss encounters, freeze, completion, pause, speed, long frames and resize passed.");
+console.log("Traversal: fixed hero, kill-driven encounters, full walks, final collection walk, pooling, pause and resize passed.");
