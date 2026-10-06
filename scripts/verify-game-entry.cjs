@@ -155,7 +155,11 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
       (1.5 / 2.54) * 96,
       'player uses fixed 1.5 cm CSS size',
     );
-    assert.equal(await world.getAttribute('data-player-position'), '102', 'player uses editable world position');
+    assert.deepEqual(
+      JSON.parse(await world.getAttribute('data-player-position')),
+      { x: 102, y: 0 },
+      'player uses editable world position',
+    );
     assert(
       Number(await world.getAttribute('data-actor-depth')) <
         Number(await world.getAttribute('data-foreground-depth')),
@@ -210,7 +214,11 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
       assert(await page.locator('.player-health').evaluate(element => getComputedStyle(element).backgroundImage.includes('Plank')), 'HP panel reuses navbar plank asset');
       assert((await page.locator('#enemy-hp').boundingBox()).y < quiz.y, 'Enemy HP belongs to the visual row');
       assert.equal(await world.getAttribute('data-hero-texture'), 'scholar-idle', 'encounters use the standing texture instead of a frozen walk frame');
-      assert.equal(await world.getAttribute('data-enemy-position'), '244', 'enemy uses editable world position');
+      assert.deepEqual(
+        JSON.parse(await world.getAttribute('data-enemy-position')),
+        { x: 244, y: 0 },
+        'enemy uses editable world position',
+      );
       assert.equal(await world.getAttribute('data-enemy-size'), await world.getAttribute('data-actor-size'), 'enemy uses same fixed size as player');
       assert.equal(await world.getAttribute('data-enemy-depth'), await world.getAttribute('data-actor-depth'), 'enemy renders behind foremost layer');
       const idleFrame = await world.getAttribute('data-walk-frame');

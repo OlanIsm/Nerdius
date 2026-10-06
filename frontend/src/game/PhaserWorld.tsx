@@ -110,8 +110,8 @@ const layers = [
   },
 ] as const;
 const ACTOR_SIZE = (1.5 / 2.54) * 96;
-const PLAYER_POSITION = { x: 102 };
-const ENEMY_POSITION = { x: 244 };
+const PLAYER_POSITION = { x: 102, y: 0 };
+const ENEMY_POSITION = { x: 244, y: 0 };
 const ACTOR_DEPTH = layers.length - 1.5;
 const FOREGROUND_DEPTH = layers.length - 1;
 const BACKGROUND_HEIGHT = 480;
@@ -216,7 +216,7 @@ export function PhaserWorld({
         parent.dataset.actorSize = String(ACTOR_SIZE);
         parent.dataset.actorDepth = String(ACTOR_DEPTH);
         parent.dataset.foregroundDepth = String(FOREGROUND_DEPTH);
-        parent.dataset.playerPosition = String(PLAYER_POSITION.x);
+        parent.dataset.playerPosition = JSON.stringify(PLAYER_POSITION);
         parent.dataset.backgroundSize = JSON.stringify({
           width: BACKGROUND_WIDTH,
           height: BACKGROUND_HEIGHT,
@@ -267,10 +267,16 @@ export function PhaserWorld({
           );
         });
         this.hero
-          .setPosition(PLAYER_POSITION.x * scale, model.playerY * scale)
+          .setPosition(
+            PLAYER_POSITION.x * scale,
+            (model.playerY + PLAYER_POSITION.y) * scale,
+          )
           .setDisplaySize(ACTOR_SIZE, ACTOR_SIZE);
         this.heroShadow
-          .setPosition(PLAYER_POSITION.x * scale, model.playerY * scale - 3)
+          .setPosition(
+            PLAYER_POSITION.x * scale,
+            (model.playerY + PLAYER_POSITION.y) * scale - 3,
+          )
           .setDisplaySize(ACTOR_SIZE * 0.75, 4);
         this.updateEnemies(true);
         this.renderParallax();
@@ -300,11 +306,12 @@ export function PhaserWorld({
           if (visible) {
             const scale = this.scale.width / WORLD.width;
             const x = ENEMY_POSITION.x * scale;
+            const y = (model.playerY + ENEMY_POSITION.y) * scale;
             this.shadows.push(
               this.add
                 .ellipse(
                   x,
-                  model.playerY * scale - 3,
+                  y - 3,
                   ACTOR_SIZE * 0.75,
                   4,
                   0x443423,
@@ -314,13 +321,13 @@ export function PhaserWorld({
             );
             this.enemies.push(
               this.add
-                .image(x, model.playerY * scale, "soda")
+                .image(x, y, "soda")
                 .setOrigin(0.5, 1)
                 .setDisplaySize(ACTOR_SIZE, ACTOR_SIZE)
                 .setDepth(ACTOR_DEPTH),
             );
             parent.dataset.enemySize = String(ACTOR_SIZE);
-            parent.dataset.enemyPosition = String(ENEMY_POSITION.x);
+            parent.dataset.enemyPosition = JSON.stringify(ENEMY_POSITION);
             parent.dataset.enemyDepth = String(ACTOR_DEPTH);
           }
         }
