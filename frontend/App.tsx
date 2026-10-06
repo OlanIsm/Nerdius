@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { art, icons } from "./src/assets";
-import { Button } from "./src/components/GameUI";
+import { Button, useReducedMotion } from "./src/components/GameUI";
 import { PlayerHeader } from "./src/components/PlayerHeader";
 import { BottomNavItem } from "./src/components/BottomNavItem";
 import { HomeScreen } from "./src/screens/HomeScreen";
@@ -16,6 +16,7 @@ import { useAdventure } from "./src/modules/game/useAdventure";
 import type { Screen } from "./src/types";
 import { ui } from "./src/theme";
 import { BattleScreen } from "./src/screens/BattleScreen";
+import { SettingsScreen } from "./src/screens/SettingsScreen";
 const navigation = [
   { screen: "Hub", icon: icons.hub },
   { screen: "Expedition", icon: icons.map },
@@ -30,6 +31,8 @@ const shellAssets = [
   art.character,
 ];
 export default function App() {
+  const reducedMotion = useReducedMotion();
+  const settingsFrom = useRef<Screen>("Hub");
   const [summoning, setSummoning] = useState(false);
   const [screen, setScreen] = useState<Screen>("Hub");
   const [message, setMessage] = useState<string>();
@@ -60,10 +63,10 @@ export default function App() {
     setSelectedExpedition, setSelectedRegion, startBattle, restartBattle,
   } = useAdventure(game, navigate, setMessage);
   const props = { navigate, notify: setMessage };
-  const showShell = ["Hub", "Expedition", "Bazaar", "Bag"].includes(screen);
+  const showShell = ["Hub", "Expedition", "Bazaar", "Bag", "Settings"].includes(screen);
   return (
     <div className="app-shell">
-      <div className="app" data-screen={screen} data-summoning={summoning}>
+      <div className="app" data-screen={screen} data-summoning={summoning} data-reduced-motion={reducedMotion}>
         {screen === "Bag" && (
           <div
             className="bag-backdrop"
@@ -84,14 +87,17 @@ export default function App() {
             gold={gameData?.gold}
             gems={gameData?.gems}
             xp={gameData?.xp}
-            onPressProfile={() =>
-              setMessage(
-                "Nerd Mage · Your progress is saved to this account.",
-              )
-            }
+            onPressProfile={() => {
+              if (screen === "Settings") return;
+              settingsFrom.current = screen;
+              navigate("Settings");
+            }}
           />
         )}
         <main className="pages" ref={main} tabIndex={-1} aria-label={screen}>
+          {screen === "Settings" && <div className="page-scroll page-reveal" ref={(node) => { pages.current.Settings = node; }}>
+            <SettingsScreen onBack={() => navigate(settingsFrom.current)} />
+          </div>}
           {visited.has("Hub") && (
             <div
               className="page-scroll page-reveal"

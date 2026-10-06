@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import { art, icons } from "../assets";
 import { colors, fonts } from "../theme";
+import { usePreference } from "../modules/settings/preferences";
 function Resource({ kind, label }: { kind: "coins" | "gems"; label: string }) {
   return (
     <div
@@ -32,6 +33,7 @@ export function PlayerHeader({
   gems?: number;
   xp?: number;
 }) {
+  const [displayName] = usePreference("nerdungeon.displayName", "Nerd Mage");
   return (
     <div style={s.header} className="stack player-header">
       <div aria-hidden={true} style={s.highlight} className="stack" />
@@ -56,9 +58,9 @@ export function PlayerHeader({
           </span>
         </div>
       </button>
-      <div style={s.player} className="stack">
+      <button type="button" aria-label="Open settings" onClick={onPressProfile} style={s.player} className="stack pressable">
         <span style={s.name} className="text">
-          Nerd Mage
+          {displayName}
         </span>
         <span style={s.rank} className="text">
           Scholar · {xp.toLocaleString()} XP
@@ -74,7 +76,7 @@ export function PlayerHeader({
         >
           <div style={s.fill} className="stack" />
         </div>
-      </div>
+      </button>
       <div style={s.resources} className="stack">
         <Resource kind="coins" label={gold.toLocaleString()} />
         <Resource kind="gems" label={gems.toLocaleString()} />

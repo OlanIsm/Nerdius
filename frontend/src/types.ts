@@ -5,6 +5,7 @@ export type Screen =
   | "RegionDetail"
   | "Bazaar"
   | "Bag"
+  | "Settings"
   | "Battle";
 export type ScreenProps = {
   navigate: (screen: Screen) => void;

@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { colors, ui } from "../theme";
 import { iconGlyphs } from "./iconGlyphs";
+import { usePreference } from "../modules/settings/preferences";
 export type IconName = keyof typeof iconGlyphs;
 export function Icon({
   name,
@@ -18,6 +19,7 @@ export function Icon({
   );
 }
 export function useReducedMotion() {
+  const [preference] = usePreference("nerdungeon.reduceMotion", "off");
   const [reduced, setReduced] = useState(
     () => matchMedia("(prefers-reduced-motion: reduce)").matches,
   );
@@ -27,7 +29,7 @@ export function useReducedMotion() {
     query.addEventListener("change", update);
     return () => query.removeEventListener("change", update);
   }, []);
-  return reduced;
+  return reduced || preference === "on";
 }
 export function Button({
   label,

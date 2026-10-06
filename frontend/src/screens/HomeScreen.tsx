@@ -4,7 +4,6 @@ import { art } from "../assets";
 import {
   Button,
   Icon,
-  Meter,
   SectionTitle,
   useReducedMotion,
 } from "../components/GameUI";
@@ -101,9 +100,6 @@ export function HomeScreen({
             The Study Forge
           </span>
         </div>
-        <span style={s.forgeSubtitle} className="text">
-          Every great quest starts with a little knowledge.
-        </span>
         <button
           role="button"
           aria-label="Browse study files"
@@ -125,10 +121,7 @@ export function HomeScreen({
             />
           </div>
           <span style={s.uploadTitle} className="text">
-            {file ?? "Turn your notes into an adventure"}
-          </span>
-          <span style={s.uploadSubtitle} className="text">
-            {file ? "Tap to choose another file" : "Upload your study material"}
+            {file ?? "Upload study material"}
           </span>
           {!file && (
             <div style={s.browse} className="stack">
@@ -139,7 +132,7 @@ export function HomeScreen({
             </div>
           )}
           <span style={s.formats} className="text">
-            PDF: chapters and questions · DOCX: starter chapters · Max 25 MB
+            PDF, DOCX · Max 25 MB
           </span>
         </button>
         {file && (
@@ -166,17 +159,6 @@ export function HomeScreen({
         <span style={ui.body} className="text">
           Chapter {lastAdventure.region.chapter} · {lastAdventure.region.title}
         </span>
-        <div style={s.progressRow} className="stack">
-          <div style={ui.flex} className="stack">
-            <Meter
-              value={lastAdventure.expedition.progress}
-              label="Expedition progress"
-            />
-          </div>
-          <span style={s.progressValue} className="text">
-            {lastAdventure.expedition.progress}%
-          </span>
-        </div>
         <Button
           label="Continue Adventure"
           tone="gold"
@@ -323,12 +305,6 @@ const s = {
     gap: 8,
   },
   forgeTitle: { fontFamily: fonts.heading, fontSize: 22, color: colors.ink },
-  forgeSubtitle: {
-    ...ui.body,
-    textAlign: "center",
-    fontSize: 12,
-    lineHeight: "18px",
-  },
   dropZone: {
     alignItems: "center",
     gap: 8,
@@ -357,7 +333,6 @@ const s = {
     color: colors.ink,
     maxWidth: 290,
   },
-  uploadSubtitle: { ...ui.body, fontSize: 12, textAlign: "center" },
   browse: {
     minHeight: 44,
     width: "100%",
@@ -385,17 +360,6 @@ const s = {
     fontSize: 18,
     lineHeight: "24px",
     color: colors.ink,
-  },
-  progressRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 4,
-  },
-  progressValue: {
-    fontFamily: fonts.heading,
-    fontSize: 14,
-    color: colors.teal,
   },
   materialHeading: {
     flexDirection: "row",

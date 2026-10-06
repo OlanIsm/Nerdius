@@ -7,6 +7,7 @@ import type { ScreenProps } from "../types";
 import { SummonRitual, type Ritual } from "../components/SummonRitual";
 import { summonAudio } from "../components/summonAudio";
 import type { GameData, SummonItem } from "../modules/game/types";
+import { usePreference } from "../modules/settings/preferences";
 
 export function GachaScreen({
   notify,
@@ -21,11 +22,13 @@ export function GachaScreen({
   gems?: number;
 }) {
   const [ritual, setRitual] = useState<Ritual>();
-  const [sound, setSound] = useState(() => localStorage.getItem("nerdungeon.summonSound") !== "off");
+  const [soundPreference, saveSound] = usePreference("nerdungeon.summonSound", "on");
+  const sound = soundPreference !== "off";
   const [details, setDetails] = useState(false);
   const chest = useRef<HTMLImageElement>(null);
   const pending = useRef(false);
   const audio = useRef<ReturnType<typeof summonAudio> | undefined>(undefined);
+  useEffect(() => { audio.current?.setEnabled(sound); }, [sound]);
   useEffect(() => {
     inventory.forEach(item => { const image = new Image(); image.src = item.image; });
     return () => audio.current?.close();
@@ -98,8 +101,9 @@ export function GachaScreen({
         </button>
       </div>
       {ritual && <SummonRitual ritual={ritual} dismiss={finish} sound={sound} toggleSound={() => {
-        const next = !sound; setSound(next); audio.current?.setEnabled(next);
-        localStorage.setItem("nerdungeon.summonSound", next ? "on" : "off");
+        const next = !sound;
+        try { saveSound(next ? "on" : "off"); audio.current?.setEnabled(next); }
+        catch (error) { notify(error instanceof Error ? error.message : "Could not save sound preference."); }
       }} />}
       {details && <DropRates pool={pool} dismiss={() => setDetails(false)} />}
     </div>

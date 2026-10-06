@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { useState } from "react";
 import { mapArt } from "../assets";
-import { Badge, Button, Icon, Meter } from "../components/GameUI";
+import { Badge, Button, Icon } from "../components/GameUI";
 import {
   AdventurePath,
   chapterState,
@@ -33,9 +33,6 @@ export function AdventureScreen({
       <div style={s.pageHeading} className="stack">
         <span style={fantasy.title} className="text">
           Your Expeditions
-        </span>
-        <span style={fantasy.body} className="text">
-          A chapter at a time. A little further every day.
         </span>
       </div>
       <div aria-label="Choose study material" className="scroll horizontal">
@@ -91,14 +88,7 @@ export function AdventureScreen({
             {expedition.file}
           </span>
         </div>
-        <div style={s.progressSeal} className="stack">
-          <span style={s.progressSealText} className="text">
-            {expedition.progress}%
-          </span>
-          <span style={s.sealLabel} className="text">
-            cleared
-          </span>
-        </div>
+
       </button>
       <AdventurePath
         chapters={expedition.regions}
@@ -178,12 +168,7 @@ export function ExpeditionCard({
           <span style={s.fileName} className="text">
             {expedition.regions.length} chapters
           </span>
-          <div style={ui.flex} className="stack">
-            <Meter value={expedition.progress} />
-          </div>
-          <span style={s.materialProgress} className="text">
-            {expedition.progress}%
-          </span>
+
         </div>
       </div>
       <Icon name="chevron-right" size={22} color={colors.teal} />
@@ -217,10 +202,6 @@ export function RegionScreen({
             </span>
           </div>
         </div>
-        <Meter
-          value={expedition.progress}
-          label={`${expedition.progress}% of this expedition cleared`}
-        />
         <AdventurePath
           chapters={expedition.regions}
           progress={expedition.progress}
@@ -252,9 +233,6 @@ export function RegionScreen({
             </span>
           </div>
         </div>
-        <span style={s.mapHint} className="text">
-          Every stop holds a new idea. Tap a chapter to see its topics.
-        </span>
       </div>
     </div>
   );
@@ -400,22 +378,6 @@ const s = {
     color: colors.ink,
     marginBottom: 4,
   },
-  progressSeal: {
-    minWidth: 61,
-    minHeight: 61,
-    borderWidth: 2,
-    borderColor: "#b8a279",
-    backgroundColor: "#f5e7bb",
-    borderRadius: 31,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  progressSealText: {
-    fontFamily: fonts.heading,
-    fontSize: 16,
-    color: colors.wood,
-  },
-  sealLabel: { fontFamily: fonts.label, fontSize: 10, color: colors.muted },
   selectedChapter: { gap: 10 },
   stateText: { ...ui.label, color: colors.teal },
   material: {
@@ -452,11 +414,6 @@ const s = {
     fontSize: 11,
     lineHeight: "16px",
     color: colors.muted,
-  },
-  materialProgress: {
-    fontFamily: fonts.heading,
-    fontSize: 11,
-    color: colors.teal,
   },
   fold: {
     position: "absolute",
@@ -495,12 +452,6 @@ const s = {
     justifyContent: "center",
     flexWrap: "wrap",
     gap: 14,
-  },
-  mapHint: {
-    ...ui.body,
-    textAlign: "center",
-    paddingLeft: 18,
-    paddingRight: 18,
   },
   detailPage: { padding: 16, paddingTop: 24, paddingBottom: 32, gap: 20 },
   detailTitle: {

@@ -80,3 +80,9 @@ Dari root: `npm run dev` menjalankan frontend dan backend bersama. Jika terpisah
 ### Summon UI handoff
 
 `frontend/src/screens/GachaScreen.tsx` owns one paid summon request and the ceremony lifetime; `components/SummonRitual.tsx` owns chest/card stages; `components/summonAudio.ts` synthesizes short effects; `summon.css` contains motion. Reuse existing chest/item art. Do not send another summon request while revealing/collecting or automatically retry a failed purchase. `npm run test:summon` needs the Vite server, uses mocked Auth/API plus the backend summon domain, and spends no live gems.
+
+### Settings handoff - 2026-10-07
+
+Header membuka `SettingsScreen.tsx`: bento Profile, Preference, Plan dan Account. Nama, summon sound dan reduce motion disimpan lokal melalui `modules/settings/preferences.ts`; account membaca `/api/me`. Harga per bulan: Free Rp0, Traveler Rp35.000, Master Rp80.000. Paid plan masih Coming soon; belum ada checkout, benefit atau entitlement. Persentase ekspedisi dan copy Hub berlebih dihapus; progres chapter tetap memakai map.
+
+`npm run test:settings` membutuhkan Vite aktif dan memakai mock Auth/API; membuktikan navigasi, persistensi nama/preferensi, harga bulanan, retry account dan layout 360/430/1280 px. Pada perubahan ini test:settings/forge/summon/game/web, 16 tes backend, typecheck backend/frontend, lint dan build lulus; review visual ship. Bukti lokal ini tidak membuktikan billing atau deploy publik. Build masih memperingatkan ukuran chunk Phaser.
