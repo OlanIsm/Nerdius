@@ -677,6 +677,9 @@ p {
 .battle-screen[data-phase="closing"] {
   background: transparent;
 }
+.battle-screen[data-phase="closing"] .battle-stage {
+  background: transparent;
+}
 .pages:has(.battle-screen:not([data-phase="closing"])) .region-preview {
   visibility: hidden;
 }
@@ -848,23 +851,41 @@ p {
   will-change: transform;
 }
 .gate-door img {
-  width: 100%;
+  width: auto;
   height: 100%;
+  max-width: none;
   display: block;
 }
 .gate-door.left {
   left: 0;
-  transform: translateX(-101%);
+  transform: none;
+}
+.gate-door.left img {
+  position: absolute;
+  right: 0;
+  transform: translateX(-100vw);
+  transition: transform 650ms cubic-bezier(0.65, 0, 0.35, 1);
 }
 .gate-door.right {
   right: 0;
-  transform: translateX(101%);
+  transform: translateX(100vw);
 }
 .gate.loading .gate-door,
 .gate.closing.closed .gate-door {
   transform: translateX(0);
 }
+.gate.loading .gate-door.left,
+.gate.closing.closed .gate-door.left {
+  transform: none;
+}
+.gate.loading .gate-door.left img,
+.gate.closing.closed .gate-door.left img {
+  transform: translateX(0);
+}
 .gate.opening .gate-door {
+  transition-duration: 750ms;
+}
+.gate.opening .gate-door.left img {
   transition-duration: 750ms;
 }
 .loading-actions {

@@ -6,6 +6,7 @@ import { GameState, type GamePhase } from "../game/types";
 import type { ScreenProps } from "../types";
 import type { BattleView } from "../gameApi";
 import { BattleQuiz } from "../components/BattleQuiz";
+import { playDamageSound, setOverworldSound } from "../components/gameAudio";
 
 const status: Record<GamePhase, string> = {
   walking: "Walking east",
@@ -55,6 +56,9 @@ export function BattleScreen({
   const [saveError, setSaveError] = useState<string>();
   const recorded = useRef(false);
   const loadingStarted = useRef(0);
+  const previousHp = useRef<{ battleId: string; hp: number } | undefined>(
+    undefined,
+  );
   const reportReady = useCallback(
     (controls: WorldControls) => setWorld(controls),
     [],
@@ -117,6 +121,23 @@ export function BattleScreen({
   useEffect(() => {
     world?.setActive(phase === "ready" && !loadError && menu === null);
   }, [phase, world, loadError, menu]);
+  useEffect(() => {
+    setOverworldSound(phase === "ready" && !loadError && menu === null);
+    return () => setOverworldSound(false);
+  }, [phase, loadError, menu]);
+  const battleId = battle?.id;
+  const playerHp = battle?.playerHp;
+  useEffect(() => {
+    if (battleId === undefined || playerHp === undefined) return;
+    const previous = previousHp.current;
+    if (
+      previous?.battleId === battleId &&
+      playerHp < previous.hp
+    ) {
+      playDamageSound();
+    }
+    previousHp.current = { battleId, hp: playerHp };
+  }, [battleId, playerHp]);
   useEffect(() => {
     if (menu) menuDialog.current?.showModal();
     else menuDialog.current?.close();

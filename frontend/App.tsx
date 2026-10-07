@@ -18,6 +18,7 @@ import { forgeRequest, gameRequest, type GameData } from "./src/gameApi";
 import type { Screen } from "./src/types";
 import { ui } from "./src/theme";
 import { BattleScreen } from "./src/screens/BattleScreen";
+import { playButtonSound } from "./src/components/gameAudio";
 const navigation = [
   { screen: "Hub", icon: icons.hub },
   { screen: "Expedition", icon: icons.map },
@@ -58,6 +59,18 @@ export default function App() {
   const [visited, setVisited] = useState(() => new Set<Screen>(["Hub"]));
   const pages = useRef<Partial<Record<Screen, HTMLDivElement | null>>>({});
   const main = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const onClick = (event: MouseEvent) => {
+      if (
+        event.target instanceof Element &&
+        event.target.closest("button:not(:disabled)")
+      ) {
+        playButtonSound();
+      }
+    };
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, []);
   useEffect(() => {
     shellAssets.forEach((source) => {
       const image = new Image();

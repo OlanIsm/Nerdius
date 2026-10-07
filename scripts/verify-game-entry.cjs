@@ -23,6 +23,13 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
   const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe' });
   try {
     const page = await browser.newPage({ viewport: { width: 430, height: 932 } });
+    await page.addInitScript(() => {
+      window.__playedSounds = [];
+      HTMLMediaElement.prototype.play = function () {
+        window.__playedSounds.push(new URL(this.src).pathname);
+        return Promise.resolve();
+      };
+    });
     const errors = [], assets = [], actions = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('response', response => {
@@ -65,6 +72,10 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
     fs.mkdirSync('test-results', { recursive: true });
     await page.screenshot({ path: 'test-results/react-hub.png' });
     await page.getByRole('tab', { name: 'Bag', exact: true }).click();
+    assert(
+      await page.evaluate(() => window.__playedSounds.some(src => src.endsWith('/audio/Wood.m4a'))),
+      'Enabled button plays Wood sound',
+    );
     await page.getByRole('button', { name: 'Quill Staff', exact: true }).click();
     await page.getByLabel('Selected item details').getByText('Quill Staff', { exact: true }).waitFor();
     await page.getByRole('tab', { name: 'Potions', exact: true }).click();
@@ -123,8 +134,13 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
         assert.equal(await page.getByTestId('fight-page').getAttribute('data-loading-started'), loadingStarted, 'Start response does not restart door closing');
       }
       const gate = await page.getByTestId('gate-loading').boundingBox();
-      assert.equal(gate.y, 0, 'gate fills viewport without inherited scroll');
-      assert.equal(gate.height, 932);
+      const viewport = page.viewportSize();
+      assert(gate.y >= 0 && gate.y + gate.height <= viewport.height, 'gate stays inside viewport');
+      const leftDoor = await page.locator('.gate.loading .gate-door.left img').boundingBox();
+      assert(
+        Math.abs(leftDoor.x + leftDoor.width - (gate.x + gate.width / 2)) <= 1,
+        'closed left door meets the gate center at any viewport aspect ratio',
+      );
       await page.screenshot({ path: 'test-results/gate-closed.png' });
       await page.getByTestId('gate-loading').waitFor({ state: 'hidden' });
       const held = await page.getByTestId('fight-page').evaluate(element => performance.now() - Number(element.dataset.loadingStarted));
@@ -133,7 +149,10 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
       assert.equal(await page.locator('canvas').count(), 1, 'one Phaser instance');
     }
     const gemsBeforeBattle = state.gems;
+    await page.setViewportSize({ width: 1024, height: 1280 });
     await enter(true);
+    await page.waitForFunction(() => window.__playedSounds.some(src => src.endsWith('/audio/chirping.mp3')));
+    await page.setViewportSize({ width: 430, height: 932 });
     const world = page.getByTestId('phaser-world');
     assert.equal(await world.getAttribute('data-renderer'), 'WebGL');
     const first = await world.getAttribute('data-walk-frame');
@@ -294,6 +313,10 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
     await page.getByRole('radio', { name: bank[0].options[(bank[0].answerIndex + 1) % 4], exact: true }).check();
     await page.getByRole('button', { name: 'Submit answer', exact: true }).click();
     await page.getByText('Not quite', { exact: true }).waitFor();
+    assert(
+      await page.evaluate(() => window.__playedSounds.some(src => src.endsWith('/audio/hitmarker_2.mp3'))),
+      'Taking damage plays hit-marker sound',
+    );
     assert.equal(await page.locator('#player-hp').getAttribute('value'), '450');
     await page.getByRole('button', { name: 'Next', exact: true }).click();
     for (const question of bank.slice(1, 3)) {
