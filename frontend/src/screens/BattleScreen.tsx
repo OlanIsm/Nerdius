@@ -7,6 +7,7 @@ import type { ScreenProps } from "../types";
 import type { BattleView } from "../gameApi";
 import { BattleQuiz } from "../components/BattleQuiz";
 import { playDamageSound, setOverworldSound } from "../components/gameAudio";
+import { playDoorCloseSound, playDoorOpenSound } from "../components/doorAudio";
 
 const status: Record<GamePhase, string> = {
   walking: "Walking east",
@@ -83,7 +84,10 @@ export function BattleScreen({
   useEffect(() => {
     if (phase !== "closing" || doorsLoaded.size !== 2 || loadError) return;
     let frame = requestAnimationFrame(() => {
-      frame = requestAnimationFrame(() => setClosed(true));
+      frame = requestAnimationFrame(() => {
+        playDoorCloseSound();
+        setClosed(true);
+      });
     });
     return () => cancelAnimationFrame(frame);
   }, [phase, doorsLoaded.size, loadError]);
@@ -110,7 +114,10 @@ export function BattleScreen({
   }, [phase, attempt, loadError, reportError, battleReady]);
   useEffect(() => {
     if (phase !== "loading" || !world || !minimumElapsed || loadError) return;
-    const timer = setTimeout(() => setPhase("opening"), 0);
+    const timer = setTimeout(() => {
+      playDoorOpenSound();
+      setPhase("opening");
+    }, 0);
     return () => clearTimeout(timer);
   }, [phase, world, minimumElapsed, loadError]);
   useEffect(() => {
