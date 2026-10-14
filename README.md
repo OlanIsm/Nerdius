@@ -1,10 +1,97 @@
-# Nerdungeon
+# Nerdungeon — Belajar Jadi Petualangan
 
-Browser app with a mobile-sized layout. React + Vite renders Hub, Expedition, Bazaar, Bag, navigation, and battle controls. Phaser 3.90 renders the adventure world: the walk atlas, monsters, and eleven WebP parallax layers.
+Nerdungeon adalah aplikasi web belajar dengan gamifikasi quiz. Materi (misalnya PDF kuliah) diubah menjadi "ekspedisi" berisi chapter/region, lalu dipelajari lewat battle quiz 10 soal per chapter dengan visual petualangan 2D.
 
-## Run
+Alurnya: upload PDF → jadi materi + soal pilihan ganda → battle jawab soal → dapat gold/gems/XP → buka chapter berikutnya / summon di Bazaar.
 
-Use Node 24. Install dependencies once:
+> Nama "Nerdius" di request = proyek ini (Nerdungeon). README ini menjelaskan kondisi kode saat ini, bukan janji rilis publik.
+
+## Apa itu Nerdungeon
+
+- **Belajar aktif, bukan baca pasif.** Setiap chapter punya materi ringkas + 10 soal pilihan ganda dengan pembahasan.
+- **Dunia game sebagai motivasi.** React merender Hub, Expedition, Bazaar, Bag, Settings, dan quiz; Phaser 3.90 merender dunia battle (karakter jalan, musuh, parallax).
+- **Konten milik sendiri.** Selain 1 ekspedisi tutorial bawaan (3 chapter × 10 soal), pengguna bisa mengunggah PDF sendiri (maks 25 MB) untuk dibuatkan 1–3 chapter lewat AI.
+- **Progres per akun.** Satu akun anonim per browser (Supabase Auth); Postgres + private Storage menyimpan state, hasil battle, dan file tiap akun secara terisolasi.
+
+## Tujuan Nerdungeon
+
+1. Menurunkan rasa malas belajar dengan loop pendek: baca materi → jawab 1 soal → feedback langsung → lanjut.
+2. Mengubah PDF apa pun menjadi paket belajar siap main (ringkasan, topik, materi, soal, kunci + pembahasan, referensi halaman).
+3. Memberi rasa progres yang konkret: HP, damage, loot, gold/XP/gems, chapter terbuka, koleksi summon.
+4. Menjaga kejujuran game: semua jawaban, HP, reward, dan progres dihitung backend — frontend hanya menampilkan.
+
+## Fitur utama
+
+- **Tutorial playable:** 1 ekspedisi tutorial, 3 chapter, masing-masing 10 soal bawaan.
+- **Forge PDF:** upload PDF → validasi struktur → Gemini menghasilkan materi + tepat 10 soal per chapter → file disimpan privat → state ditambah. Gagal divalidasi/generasi = tidak ada ekspedisi palsu.
+- **Combat quiz:** HP pemain 500, HP musuh 100. Benar = 50 damage ke musuh; salah = 50 damage ke pemain. Musuh kalah diganti selama soal tersisa. Selesaikan 10 soal dengan HP > 0 = menang; HP 0 = kalah tanpa reward.
+- **Reward:** bonus pertama kali lulus chapter 450 gold + 100 XP; tiap musuh kalah = pending loot 100 gold + 50 gems yang hanya cair saat `complete` menang (termasuk replay). Exit/restart/kalah membuang pending loot.
+- **Aman diulang:** jawaban tersimpan, reload/resume memakai `battleId` sama, retry identik tidak menggandakan reward.
+- **Bazaar summon:** gacha 1× (100 gems) / 10× (900 gems) dengan animasi chest + kartu, guard saldo lokal + validasi backend.
+- **Bag, Settings, Hub badge:** tas, pengaturan nama/suara/reduce-motion, badge merah Hub untuk forge selesai/gagal, dialog forge bisa di-minimize setelah 3 detik.
+- **Battle dua baris:** scene Phaser + HP musuh di atas, HP pemain + quiz di bawah; quiz tidak menutupi canvas.
+
+## Tech Stack
+
+| Lapisan | Teknologi |
+| --- | --- |
+| Frontend | React 19, Vite 6, TypeScript, Phaser 3.90, `@supabase/supabase-js` 2.x |
+| Backend | Node 24, Express 5, TypeScript, Multer (upload), `pdf-lib` (validasi PDF) |
+| Data/Auth | Supabase lokal (Docker): Auth anonim, Postgres (`game_states`), Storage privat (`expeditions`) |
+| AI | Google Gemini (HTTP langsung, retry khusus 503) untuk materi + soal PDF |
+| Kualitas | `tsc --noEmit`, ESLint, `vite build`, `node:test` (16 tes backend), skrip Playwright (`test:web`, `test:forge`, `test:summon`, `test:game`, `test:settings`, `test:learning`) |
+
+## Architecture
+
+Satu **modular monolith Express** + klien React/Vite + renderer Phaser. Kontrak endpoint tetap `/api`. Detail penuh ada di [docs/architecture.md](docs/architecture.md).
+
+```text
+Browser (React + Phaser) ── /api (JSON + multipart) ──► Express (/api/me, /api/game, /api/game/forge)
+                                                                  │           │
+                                                     Supabase Auth/State/Storage   Gemini (PDF → materi+soal)
+```
+
+### Backend (`backend/src/`)
+
+- `app.ts` + `server.ts`: rakit middleware/router, verifikasi token, jalankan server.
+- `modules/account/`: verifikasi access token, `GET /api/me`.
+- `modules/game/`: route (`index.ts`), tipe domain (`types.ts`), aturan battle (`battle.ts`), snapshot publik (`snapshot.ts`), forge/upload (`forge.ts`), validasi + instruksi PDF (`pdf.ts`), persistensi optimistis (`store.ts`), summon/tutorial.
+- `platform/`: client Supabase, transport/retry Gemini, error HTTP aman.
+
+Aturan penting:
+
+- Question bank hanya di backend. Snapshot hanya mengirim soal berikutnya **tanpa kunci**; kunci + pembahasan hanya untuk soal yang sudah dijawab.
+- `start` (expeditionId/chapter), `restart` (battleId baru, HP penuh, resource/progres utuh), `exit` (buang attempt, start berikutnya dari soal 1), `answer` (hanya soal berikutnya, index valid), `complete` (semua soal terjawab atau HP 0).
+- Tulis state dengan version check + retry konflik ≤ 5×; retry answer/complete idempotent.
+
+### Frontend (`frontend/src/`)
+
+- `App.tsx`: shell, navigasi, lifetime halaman.
+- `modules/game/`: DTO/API (`api.ts`), snapshot (`useGame.ts`), adventure/battle entry (`useAdventure.ts`), forge/minimize/badge (`useForge.ts`).
+- `platform/auth.ts`: sesi browser + sign-in anonim.
+- `screens/` + `components/`: presentasi per layar; `game/`: scene Phaser (visual saja, tidak memberi reward).
+
+### Urutan forge PDF (ringkas)
+
+1. UI kirim multipart PDF terautentikasi → router game → forge.
+2. Validasi PDF (1–1000 halaman, ≤ 25 MB, tidak rusak) → minta JSON ke Gemini.
+3. Validasi hasil (tepat 10 soal/chapter, 4 opsi unik, index jawaban valid, referensi halaman fisik).
+4. Simpan file ke Storage privat → tambah ekspedisi ke state (gagal tulis = file dihapus lagi).
+
+Retry Gemini hanya untuk HTTP 503 (maks 3 attempt, 1 deadline 90 detik). Error kuota/input/limit tidak diulang. Log hanya berisi model, byte/halaman, status, durasi, token — tanpa isi PDF/key.
+
+## Cara run locally
+
+### Prasyarat
+
+- Node 24, npm (Windows: pakai `npm.cmd` bila `npm.ps1` diblokir).
+- Docker Desktop (untuk Supabase lokal: Auth, Postgres, Storage).
+- Chrome terinstal (untuk tes browser; override `CHROME_PATH` bila perlu).
+- `GEMINI_API_KEY` (Google AI Studio) di `backend/.env` — hanya untuk forge PDF; tutorial jalan tanpanya.
+
+Jangan arahkan proxy API ke port 3000 — di workspace ini port itu milik app Next.js lain dan mengembalikan HTML. Nerdungeon memakai **backend 4000 + frontend 5173**.
+
+### 1. Install
 
 ```sh
 npm ci
@@ -12,56 +99,50 @@ npm --prefix frontend ci
 npm --prefix backend ci
 ```
 
-Start the API and web app together:
-
-```sh
-npm run dev
-```
-
-Open http://localhost:5173. Vite proxies /api to the Nerdungeon Express API on http://127.0.0.1:4000. Keep `PORT=4000` in backend/.env. Port 3000 may belong to another app; pointing the proxy there can return HTML instead of API JSON. To run services separately, use `npm run backend:dev` and `npm run frontend:dev`. Stop existing Nerdungeon dev processes before starting the combined command. Vite refuses a busy frontend port. Set VITE_API_URL in frontend/.env only when using another API origin. This is a web app; Expo Go and Android/iOS builds are no longer used.
-
-## Local database
-
-The app uses a local Supabase stack in Docker for Auth, Postgres, and Storage. Start Docker Desktop, then run:
+### 2. Supabase lokal + env
 
 ```sh
 npm run supabase:start
 npm run supabase -- status --workdir backend -o env
 ```
 
-Copy the local `API_URL` and `PUBLISHABLE_KEY` into `frontend/.env`. Set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` in `backend/.env` to the same local API URL and publishable key. Copy `SECRET_KEY` to `SUPABASE_SECRET_KEY` in `backend/.env` only. Keep secret keys out of the frontend and Git. The local config enables anonymous sign-in, and the existing game migration runs on startup.
+Salin hasilnya ke env:
 
-Then run `npm run dev` and open http://localhost:5173. Stop the local Supabase stack with `npm run supabase:stop`; Docker keeps its database volume between stops. Local data is separate from the hosted Supabase project. PDF generation still needs `GEMINI_API_KEY` in `backend/.env`; the tutorial and parallax work without it.
+- `frontend/.env`: `VITE_SUPABASE_URL` + `VITE_SUPABASE_PUBLISHABLE_KEY` (= `API_URL` + `PUBLISHABLE_KEY` lokal).
+- `backend/.env`: `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` sama, plus `SUPABASE_SECRET_KEY` (= `SECRET_KEY`). Jangan taruh secret di frontend/Git.
+- Pastikan `PORT=4000` di `backend/.env`; `GEMINI_API_KEY` diisi bila mau coba forge PDF.
 
-## Game and data
+Config lokal sudah mengaktifkan anonymous sign-in dan migrasi `backend/supabase/migrations/20260930000000_game_backend.sql` jalan saat startup.
 
-See [architecture and maintenance](docs/architecture.md) for backend/frontend module boundaries, the upload sequence, concurrency, and verification limits.
-
-Phaser loads when entering Battle and is destroyed on exit. Doors slide shut before game assets load, remain closed for at least 1.5 seconds, and reopen when the scene is ready. The game stays inactive until opening completes. Walking stops during encounters, pause, and hidden browser tabs. Canvas resizes with the app shell. Reduced motion disables walking animation and door motion while keeping the loading hold.
-
-Express verifies answers, HP, rewards and progress. Supabase Auth creates one anonymous account per browser; Postgres and private Storage keep each account's data. Each account starts with one playable tutorial adventure, three regions with 10 questions each. PDF uploads up to 25 MB generate 1-3 regions with exactly 10 questions each through Gemini. DOCX still has starter chapters without generated questions.
-
-Combat starts with 500 player HP and 100 enemy HP. Each correct answer deals 50 damage to the enemy; a wrong answer costs 50 player HP. A defeated enemy is replaced while questions remain. Finish all 10 questions with player HP above zero to win; zero HP loses. First-time chapter wins grant 450 gold and 100 XP. Saved answers make refresh/resume and identical retries safe. The tutorial upgrades for existing accounts; older PDF banks need a new upload before starting a new attempt.
-
-Battle uses two rows: the upper Phaser scene and enemy HP, followed by player HP and the scrollable quiz. Quiz content never overlays the canvas. Forge loading can be minimized after three seconds; its status moves to Study scrolls while you navigate. Success or failure adds a red Hub badge, cleared when you open Hub or its ready adventure. Progress tracking requires the tab to stay open; this does not create a persistent background job.
-
-## Verify
+### 3. Jalan
 
 ```sh
+npm run dev
+```
+
+Buka http://localhost:5173. Vite mem-proxy `/api` ke `http://127.0.0.1:4000`. Pisah bila perlu: `npm run backend:dev` + `npm run frontend:dev`. Matikan proses dev Nerdungeon lama dulu; Vite strictPort menolak port sibuk. Stop DB lokal: `npm run supabase:stop` (volume Docker tetap).
+
+### 4. Verifikasi
+
+```sh
+npm --prefix backend test
+npm --prefix backend run typecheck
 npm run typecheck
 npm run lint
 npm run build
 npm run test:game
-npm run test:web
-npm run test:forge
-npm --prefix backend test
-npm --prefix backend run typecheck
-npm --prefix backend run verify:pdf
-npm run test:learning
+npm run test:web      # butuh frontend aktif
+npm run test:forge     # butuh frontend aktif
+npm run test:summon    # butuh frontend aktif
+npm run test:settings  # butuh frontend aktif
+npm run test:learning  # butuh frontend + backend + GEMINI_API_KEY
+npm --prefix backend run verify:pdf  # live Gemini/Supabase, jalan server ephemeral sendiri
 ```
 
-Run the web app before test:web. Its browser test mocks API/Auth and checks combat win/defeat, HTML API errors, every React page, upload/summon, gate timing, Phaser animation, resize and engine cleanup. `verify:pdf` uses real Gemini/Supabase with two temporary accounts. `test:learning` needs both services and checks a real browser tutorial/PDF battle, network retry and account persistence. Live tests consume Gemini quota and clean up temporary users/files. Tests use installed Chrome; CHROME_PATH overrides it. APP_URL can target another frontend URL. Screenshots go into ignored test-results/.
+`test:web/forge/summon/settings` memakai mock Auth/API + domain backend asli (tanpa gems/kuota live). `verify:pdf`/`test:learning` memakai provider asli, akun/file sementara yang dibersihkan di `finally`, dan memakan kuota Gemini. Screenshot masuk `test-results/` (diabaikan Git).
 
-Production output is frontend/dist. Configure the deployment to proxy /api to the backend or build with VITE_API_URL. Hashed assets support browser caching when the host sends suitable cache headers.
+Output produksi frontend: `frontend/dist`. Deploy perlu mem-proxy `/api` ke backend (atau build dengan `VITE_API_URL`).
 
-The old ignored `backend/data` stays on disk but is not imported into Supabase automatically.
+## Status saat ini (jujur)
+
+Jalur belajar **lokal** sudah terbukti end-to-end (upload PDF sintetis → battle → reward → reload, dua akun terisolasi). **MVP publik belum siap**: belum ada deploy HTTPS/proxy produksi, audit policy menyeluruh, limit anti-abuse, pemulihan akun lintas perangkat, hapus akun/retensi, monitoring/backup, dan review kualitas PDF nyata (scan, buku panjang, referensi faktual). Lihat tabel progres di `AGENTS.md` sebelum mengklaim selesai.
