@@ -74,7 +74,7 @@ const layers = [
       "../../assets/savannah parallax/Savannah Parallax/compressed/7.webp",
       import.meta.url,
     ).href,
-    speed: 0.28,
+    speed: 0.68,
   },
   {
     name: "savannah-8",
@@ -82,7 +82,7 @@ const layers = [
       "../../assets/savannah parallax/Savannah Parallax/compressed/8.webp",
       import.meta.url,
     ).href,
-    speed: 0.38,
+    speed: 0.76,
   },
   {
     name: "savannah-9",
@@ -90,7 +90,7 @@ const layers = [
       "../../assets/savannah parallax/Savannah Parallax/compressed/9.webp",
       import.meta.url,
     ).href,
-    speed: 0.5,
+    speed: 0.95,
   },
   {
     name: "savannah-10",
@@ -98,7 +98,7 @@ const layers = [
       "../../assets/savannah parallax/Savannah Parallax/compressed/10.webp",
       import.meta.url,
     ).href,
-    speed: 0.72,
+    speed: 1.05,
   },
   {
     name: "savannah-11",
@@ -106,17 +106,17 @@ const layers = [
       "../../assets/savannah parallax/Savannah Parallax/compressed/11.webp",
       import.meta.url,
     ).href,
-    speed: 1,
+    speed: 1.2,
   },
 ] as const;
-const ACTOR_SIZE = (1.5 / 2.54) * 96;
-const PLAYER_POSITION = { x: 102, y: 0 };
-const ENEMY_POSITION = { x: 244, y: 0 };
+const ACTOR_SIZE = (1.7 / 2.54) * 96;
+const PLAYER_POSITION = { x: 102, y: 35 };
+const ENEMY_POSITION = { x: 244, y: 35 };
 const ACTOR_DEPTH = layers.length - 1.5;
 const FOREGROUND_DEPTH = layers.length - 1;
-const BACKGROUND_HEIGHT = 480;
+const BACKGROUND_HEIGHT = 300;
 const BACKGROUND_WIDTH = (BACKGROUND_HEIGHT * 3973) / 3000;
-const BACKGROUND_BASELINE = 657 / 844;
+const BACKGROUND_BASELINE = 500 / 844;
 export type WorldControls = {
   model: FantasyGame;
   act: (action: () => void) => void;
