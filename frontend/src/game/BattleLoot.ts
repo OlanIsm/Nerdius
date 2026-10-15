@@ -12,8 +12,8 @@ export class BattleLoot {
   private origin = 0;
   private collected = 0;
 
-  constructor(private scene: Phaser.Scene) {
-    this.trails = scene.add.graphics().setDepth(16);
+  constructor(private scene: Phaser.Scene, private actorDepth: number) {
+    this.trails = scene.add.graphics().setDepth(actorDepth);
   }
 
   burst(distance: number) {
@@ -25,19 +25,18 @@ export class BattleLoot {
     for (let i = 0; i < 8; i++) {
       const gem = i % 3 === 0;
       this.pieces.push({
-        image: this.scene.add.image(0, 0, gem ? "loot-gem" : "loot-coin").setDepth(18),
-        shadow: this.scene.add.ellipse(0, 0, 14, 4, 0x473322, .22).setDepth(12),
+        image: this.scene.add.image(0, 0, gem ? "loot-gem" : "loot-coin").setDepth(this.actorDepth),
+        shadow: this.scene.add.ellipse(0, 0, 14, 4, 0x473322, .22).setDepth(this.actorDepth),
         color: gem ? 0xce83ff : 0xffcb43,
         trail: [],
       });
     }
   }
 
-  update(dt: number, model: FantasyGame, reduced: boolean) {
+  update(dt: number, model: FantasyGame, reduced: boolean, ground: number) {
     this.age += dt;
     if (model.state === GameState.walking) this.walking += dt;
     const scale = this.scene.scale.width / WORLD.width;
-    const ground = model.playerY + 28;
     const offset = model.distance - this.origin;
     this.trails.clear();
     this.pieces.forEach((piece, i) => {

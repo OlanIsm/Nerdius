@@ -1,0 +1,351 @@
+/*
+ * The auth artwork shares a 4:5 canvas. Adjust these percentage values to
+ * align each control with the matching wooden sign. Frill left/top are
+ * offsets within the focused field; frill width scales its natural aspect.
+ */
+:root {
+  --auth-frill-left: 50%;
+  --auth-frill-top: 50%;
+  --auth-frill-width: 118%;
+
+  --auth-login-email-top: 39.5%;
+  --auth-login-email-left: 50%;
+  --auth-login-email-width: 44%;
+  --auth-login-email-height: 5%;
+  --auth-login-password-top: 51%;
+  --auth-login-password-left: 50%;
+  --auth-login-password-width: 44%;
+  --auth-login-password-height: 5%;
+  --auth-login-submit-top: 61%;
+  --auth-login-submit-left: 50%;
+  --auth-login-submit-width: 44%;
+  --auth-login-submit-height: 5.5%;
+
+  --auth-signup-name-top: 40%;
+  --auth-signup-name-left: 50%;
+  --auth-signup-name-width: 42%;
+  --auth-signup-name-height: 4.2%;
+  --auth-signup-email-top: 51%;
+  --auth-signup-email-left: 50%;
+  --auth-signup-email-width: 42%;
+  --auth-signup-email-height: 4.2%;
+  --auth-signup-password-top: 62%;
+  --auth-signup-password-left: 50%;
+  --auth-signup-password-width: 42%;
+  --auth-signup-password-height: 4.2%;
+  --auth-signup-confirmation-top: 73.5%;
+  --auth-signup-confirmation-left: 50%;
+  --auth-signup-confirmation-width: 42%;
+  --auth-signup-confirmation-height: 4.2%;
+  --auth-signup-submit-top: 84%;
+  --auth-signup-submit-left: 50%;
+  --auth-signup-submit-width: 42%;
+  --auth-signup-submit-height: 5.5%;
+}
+
+.app.auth-app {
+  max-width: none;
+  height: 100%;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.auth-page {
+  position: absolute;
+  inset: 0;
+  isolation: isolate;
+  overflow: hidden;
+  color: #fff4d4;
+  background: #20150f;
+}
+
+.auth-art-stage {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  height: 100%;
+  aspect-ratio: 4 / 5;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.auth-art-stage > img,
+.auth-title-glisten {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+
+.auth-art-title {
+  z-index: 1;
+}
+
+.auth-title-glisten {
+  z-index: 2;
+  background: linear-gradient(
+    110deg,
+    transparent 42%,
+    #fff8d88c 50%,
+    transparent 58%
+  );
+  background-size: 260% 100%;
+  background-position: 160% 0;
+  mask-size: 100% 100%;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  animation: auth-title-glisten 5s ease-in-out infinite;
+}
+
+.auth-art-signs {
+  z-index: 3;
+}
+
+@keyframes auth-title-glisten {
+  0%,
+  58% {
+    background-position: 160% 0;
+  }
+  78%,
+  100% {
+    background-position: -60% 0;
+  }
+}
+
+.auth-form {
+  position: absolute;
+  z-index: 5;
+  top: 0;
+  left: 50%;
+  height: 100%;
+  aspect-ratio: 4 / 5;
+  transform: translateX(-50%);
+}
+
+.auth-field,
+.auth-submit {
+  position: absolute;
+  display: block;
+  transform: translate(-50%, -50%);
+}
+
+.auth-field {
+  isolation: isolate;
+}
+
+.auth-focus-frill {
+  position: absolute;
+  z-index: 0;
+  top: var(--auth-frill-top);
+  left: var(--auth-frill-left);
+  width: var(--auth-frill-width);
+  height: auto;
+  transform: translate(-50%, -50%);
+  object-fit: fill;
+  pointer-events: none;
+}
+
+.auth-field input {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 8px;
+  outline: none;
+  background: transparent;
+  box-shadow: none;
+  color: #fff4d4;
+  font:
+    600 clamp(12px, 2.5vh, 17px)/1.2 Epilogue_500Medium,
+    sans-serif;
+  text-align: center;
+}
+
+.auth-field input::placeholder {
+  color: #fff0d7;
+  opacity: 1;
+  text-shadow: 0 1px 3px #29150b;
+}
+
+.auth-field input:focus-visible,
+.auth-submit:focus-visible,
+.auth-link:focus-visible {
+  outline: 3px solid #fff1a5;
+  outline-offset: 3px;
+}
+
+.auth-field input:disabled,
+.auth-submit:disabled,
+.auth-link:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.auth-submit {
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  box-shadow: none;
+  color: #fff4d4;
+  font:
+    700 clamp(15px, 3.4vh, 21px)/1 Rubik_700Bold,
+    sans-serif;
+  text-align: center;
+  text-shadow:
+    0 2px 3px #29150b,
+    0 0 8px #29150b;
+  cursor: pointer;
+}
+
+.auth-submit:active {
+  transform: translate(-50%, calc(-50% + 1px));
+}
+
+.auth-form[data-mode="login"] .auth-field--email {
+  top: var(--auth-login-email-top);
+  left: var(--auth-login-email-left);
+  width: var(--auth-login-email-width);
+  height: var(--auth-login-email-height);
+}
+
+.auth-form[data-mode="login"] .auth-field--password {
+  top: var(--auth-login-password-top);
+  left: var(--auth-login-password-left);
+  width: var(--auth-login-password-width);
+  height: var(--auth-login-password-height);
+}
+
+.auth-form[data-mode="login"] .auth-submit {
+  top: var(--auth-login-submit-top);
+  left: var(--auth-login-submit-left);
+  width: var(--auth-login-submit-width);
+  height: var(--auth-login-submit-height);
+}
+
+.auth-form[data-mode="signup"] .auth-field--name {
+  top: var(--auth-signup-name-top);
+  left: var(--auth-signup-name-left);
+  width: var(--auth-signup-name-width);
+  height: var(--auth-signup-name-height);
+}
+
+.auth-form[data-mode="signup"] .auth-field--email {
+  top: var(--auth-signup-email-top);
+  left: var(--auth-signup-email-left);
+  width: var(--auth-signup-email-width);
+  height: var(--auth-signup-email-height);
+}
+
+.auth-form[data-mode="signup"] .auth-field--password {
+  top: var(--auth-signup-password-top);
+  left: var(--auth-signup-password-left);
+  width: var(--auth-signup-password-width);
+  height: var(--auth-signup-password-height);
+}
+
+.auth-form[data-mode="signup"] .auth-field--confirmation {
+  top: var(--auth-signup-confirmation-top);
+  left: var(--auth-signup-confirmation-left);
+  width: var(--auth-signup-confirmation-width);
+  height: var(--auth-signup-confirmation-height);
+}
+
+.auth-form[data-mode="signup"] .auth-submit {
+  top: var(--auth-signup-submit-top);
+  left: var(--auth-signup-submit-left);
+  width: var(--auth-signup-submit-width);
+  height: var(--auth-signup-submit-height);
+}
+
+.auth-feedback {
+  position: absolute;
+  z-index: 6;
+  top: 86%;
+  left: 50%;
+  width: min(90vw, 480px);
+  transform: translateX(-50%);
+  color: #fff0c9;
+  font:
+    600 14px/1.4 Epilogue_500Medium,
+    sans-serif;
+  text-align: center;
+  text-shadow: 0 2px 4px #170e09;
+}
+
+.auth-form[data-mode="signup"] ~ .auth-feedback {
+  top: 88%;
+}
+
+.auth-links {
+  position: absolute;
+  z-index: 6;
+  top: 94%;
+  left: 50%;
+  display: flex;
+  width: min(94vw, 520px);
+  justify-content: center;
+  gap: 8px 24px;
+  transform: translate(-50%, -50%);
+}
+
+.auth-link {
+  border: 0;
+  padding: 6px;
+  background: transparent;
+  color: #fff1ca;
+  font:
+    600 14px/1.3 Epilogue_500Medium,
+    sans-serif;
+  text-align: center;
+  text-decoration: underline;
+  text-shadow:
+    0 2px 4px #170e09,
+    0 0 8px #170e09;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.auth-loading {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  color: #fff1ca;
+  font:
+    700 18px/1.3 Rubik_700Bold,
+    sans-serif;
+}
+
+@media (max-height: 650px) {
+  .auth-links {
+    top: 94%;
+  }
+
+  .auth-feedback {
+    top: 87%;
+  }
+}
+
+@media (max-width: 520px) {
+  .auth-links {
+    flex-wrap: wrap;
+  }
+}

@@ -14,10 +14,16 @@ import {
 } from "./src/screens/AdventureScreen";
 import { InventoryScreen } from "./src/screens/InventoryScreen";
 import { GachaScreen } from "./src/screens/GachaScreen";
-import { forgeRequest, gameRequest, type GameData } from "./src/gameApi";
+import {
+  forgeRequest,
+  gameRequest,
+  getSupabaseClient,
+  type GameData,
+} from "./src/gameApi";
 import type { Screen } from "./src/types";
 import { ui } from "./src/theme";
 import { BattleScreen } from "./src/screens/BattleScreen";
+import { AuthScreen } from "./src/screens/AuthScreen";
 import { playButtonSound } from "./src/components/gameAudio";
 const navigation = [
   { screen: "Hub", icon: icons.hub },
@@ -39,6 +45,11 @@ function findExpedition(items: Expedition[], selected: Expedition) {
 }
 export default function App() {
   const [startingBattle, setStartingBattle] = useState(false);
+  const [authStatus, setAuthStatus] = useState<
+    "loading" | "signed-in" | "signed-out"
+  >("loading");
+  const [authError, setAuthError] = useState<string>();
+  const [accountOpen, setAccountOpen] = useState(false);
   const [battleEntry, setBattleEntry] = useState(0);
   const startPending = useRef(false);
   const [summoning, setSummoning] = useState(false);
@@ -76,14 +87,68 @@ export default function App() {
       const image = new Image();
       image.src = source;
     });
-    gameRequest()
+    let active = true;
+    async function restoreSession() {
+      try {
+        const { data, error } = await getSupabaseClient().auth.getSession();
+        if (error) throw error;
+        if (!active) return;
+        if (!data.session) {
+          setAuthStatus("signed-out");
+          return;
+        }
+        if (data.session.user.is_anonymous) {
+          setAuthStatus("signed-out");
+          return;
+        }
+        setAuthStatus("signed-in");
+        try {
+          setGameData(await gameRequest());
+        } catch (requestError) {
+          setMessage(
+            requestError instanceof Error
+              ? requestError.message
+              : "Backend unavailable",
+          );
+        }
+      } catch (error) {
+        if (!active) return;
+        setAuthError(
+          error instanceof Error
+            ? error.message
+            : "Could not restore your account session.",
+        );
+        setAuthStatus("signed-out");
+      }
+    }
+    void restoreSession();
+    return () => {
+      active = false;
+    };
+  }, []);
+  function enterAuthenticatedApp() {
+    setAuthError(undefined);
+    setAuthStatus("signed-in");
+    void gameRequest()
       .then(setGameData)
       .catch((error) =>
         setMessage(
           error instanceof Error ? error.message : "Backend unavailable",
         ),
       );
-  }, []);
+  }
+  async function signOut() {
+    try {
+      const { error } = await getSupabaseClient().auth.signOut();
+      if (error) throw error;
+      setGameData(undefined);
+      setAccountOpen(false);
+      setAuthStatus("signed-out");
+    } catch (error) {
+      setAccountOpen(false);
+      setMessage(error instanceof Error ? error.message : "Could not sign out.");
+    }
+  }
   const navigate = useCallback((next: Screen) => {
     setVisited((current) =>
       current.has(next) ? current : new Set(current).add(next),
@@ -127,6 +192,19 @@ export default function App() {
         };
   const props = { navigate, notify: setMessage };
   const showShell = ["Hub", "Expedition", "Bazaar", "Bag"].includes(screen);
+  if (authStatus !== "signed-in") {
+    return (
+      <div className="app-shell">
+        <div className="app auth-app">
+          {authStatus === "loading" ? (
+            <div className="auth-loading" role="status">Opening the tavern…</div>
+          ) : (
+            <AuthScreen initialError={authError} onAuthenticated={enterAuthenticatedApp} />
+          )}
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="app-shell">
       <div className="app" data-screen={screen} data-summoning={summoning}>
@@ -150,11 +228,7 @@ export default function App() {
             gold={gameData?.gold}
             gems={gameData?.gems}
             xp={gameData?.xp}
-            onPressProfile={() =>
-              setMessage(
-                "Nerd Mage · Your progress is saved to this account.",
-              )
-            }
+            onPressProfile={() => setAccountOpen(true)}
           />
         )}
         <main className="pages" ref={main} tabIndex={-1} aria-label={screen}>
@@ -170,6 +244,7 @@ export default function App() {
                 {...props}
                 expeditions={availableExpeditions}
                 lastAdventure={recentAdventure}
+                onSignOut={() => void signOut()}
                 onForge={async (file) => {
                   const data = await forgeRequest(file);
                   setGameData(data);
@@ -340,6 +415,13 @@ export default function App() {
             ))}
           </nav>
         )}
+        {accountOpen && (
+          <Journal
+            message="Your progress is saved to this account. Sign out to return to the login screen."
+            dismiss={() => setAccountOpen(false)}
+            onSignOut={() => void signOut()}
+          />
+        )}
         {message && (
           <Journal message={message} dismiss={() => setMessage(undefined)} />
         )}
@@ -350,9 +432,11 @@ export default function App() {
 function Journal({
   message,
   dismiss,
+  onSignOut,
 }: {
   message: string;
   dismiss: () => void;
+  onSignOut?: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -373,7 +457,14 @@ function Journal({
           Adventurer’s Journal
         </h2>
         <p style={ui.body}>{message}</p>
-        <Button label="Continue" tone="gold" onPress={dismiss} />
+        {onSignOut && (
+          <Button label="Sign out" tone="quiet" onPress={onSignOut} />
+        )}
+        <Button
+          label={onSignOut ? "Stay signed in" : "Continue"}
+          tone="gold"
+          onPress={dismiss}
+        />
       </div>
     </dialog>
   );

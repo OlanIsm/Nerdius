@@ -6,7 +6,14 @@ import { GameState, type GamePhase } from "../game/types";
 import type { ScreenProps } from "../types";
 import type { BattleView } from "../gameApi";
 import { BattleQuiz } from "../components/BattleQuiz";
-import { playDamageSound, setOverworldSound } from "../components/gameAudio";
+import {
+  playAttackSound,
+  playCorrectAnswerSound,
+  playDamageSound,
+  playWinSound,
+  playWrongAnswerSound,
+  setOverworldSound,
+} from "../components/gameAudio";
 import { playDoorCloseSound, playDoorOpenSound } from "../components/doorAudio";
 
 const status: Record<GamePhase, string> = {
@@ -56,6 +63,8 @@ export function BattleScreen({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string>();
   const recorded = useRef(false);
+  const submittedAnswerKey = useRef<string>();
+  const lastFeedbackKey = useRef<string>();
   const loadingStarted = useRef(0);
   const previousHp = useRef<{ battleId: string; hp: number } | undefined>(
     undefined,
@@ -134,6 +143,25 @@ export function BattleScreen({
   }, [phase, loadError, menu]);
   const battleId = battle?.id;
   const playerHp = battle?.playerHp;
+  const feedback = battle?.feedback;
+  const feedbackKey = feedback && battleId
+    ? `${battleId}:${feedback.questionId}`
+    : undefined;
+  useEffect(() => {
+    if (!feedbackKey) {
+      lastFeedbackKey.current = undefined;
+      return;
+    }
+    if (feedbackKey === lastFeedbackKey.current) return;
+    lastFeedbackKey.current = feedbackKey;
+    if (submittedAnswerKey.current !== feedbackKey) return;
+    submittedAnswerKey.current = undefined;
+    if (feedback?.correct) {
+      playAttackSound();
+      playCorrectAnswerSound();
+    }
+    else playWrongAnswerSound();
+  }, [feedback?.correct, feedbackKey]);
   useEffect(() => {
     if (battleId === undefined || playerHp === undefined) return;
     const previous = previousHp.current;
@@ -154,6 +182,7 @@ export function BattleScreen({
   useEffect(() => {
     if (gameState === GameState.result && !recorded.current) {
       recorded.current = true;
+      playWinSound();
       setSaving(true);
       onComplete()
         .catch((error) =>
@@ -263,8 +292,16 @@ export function BattleScreen({
               onAcknowledge={setAcknowledged}
               tutorial={tutorial}
               onAnswer={async (questionId, selectedIndex) => {
+                const submittedKey = `${battle.id}:${questionId}`;
+                submittedAnswerKey.current = submittedKey;
                 setAnswering(true);
-                try { await onAnswer(questionId, selectedIndex); }
+                try {
+                  await onAnswer(questionId, selectedIndex);
+                } catch (error) {
+                  if (submittedAnswerKey.current === submittedKey)
+                    submittedAnswerKey.current = undefined;
+                  throw error;
+                }
                 finally { setAnswering(false); }
               }}
               onAdvance={() => world.act(() => game.completeEncounter(battle.finished))}
@@ -359,6 +396,13 @@ export function BattleScreen({
               />
             </div>
           ))}
+          {!loadError && ((phase === "closing" && closed) || phase === "loading") && (
+            <img
+              className="gate-loading-character"
+              src={art.nerdLoading}
+              alt="Loading adventure"
+            />
+          )}
           {loadError && (
             <div className="loading-actions" role="alert">
               <p>Some assets failed to load.</p>

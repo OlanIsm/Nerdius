@@ -1,4 +1,24 @@
 export const art = {
+  authBackground: new URL(
+    "../assets/login-signup/Login background_.png",
+    import.meta.url,
+  ).href,
+  authTitle: new URL(
+    "../assets/login-signup/Login Nerdius brown title portrait top.png",
+    import.meta.url,
+  ).href,
+  loginSigns: new URL(
+    "../assets/login-signup/Login signs.png",
+    import.meta.url,
+  ).href,
+  signupSigns: new URL(
+    "../assets/login-signup/Signup signs.png",
+    import.meta.url,
+  ).href,
+  authSelectedPlank: new URL(
+    "../assets/login-signup/Plank selected.png",
+    import.meta.url,
+  ).href,
   summon10x: new URL("../assets/GUI/summon-10x.png", import.meta.url).href,
   merlinsRoom: new URL(
     "../assets/background/merlins_room.webp",

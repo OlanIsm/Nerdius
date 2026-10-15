@@ -6,6 +6,7 @@ import { GameState } from "./types";
 import { WORLD } from "./level";
 import { icons } from "../assets";
 import { BattleLoot } from "./BattleLoot";
+import { playTreasureSound, setWalkingSound } from "../components/gameAudio";
 
 const walkTexture = new URL(
   "../../assets/character/mc-walk/spritesheet.png",
@@ -110,13 +111,12 @@ const layers = [
   },
 ] as const;
 const ACTOR_SIZE = (1.7 / 2.54) * 96;
-const PLAYER_POSITION = { x: 102, y: 35 };
-const ENEMY_POSITION = { x: 244, y: 35 };
-const ACTOR_DEPTH = layers.length - 1.5;
+const PLAYER_POSITION = { x: 102, y: 0.71 };
+const ENEMY_POSITION = { x: 244, y: 0.71 };
+const ACTOR_DEPTH = layers.length - 3.5;
 const FOREGROUND_DEPTH = layers.length - 1;
-const BACKGROUND_HEIGHT = 300;
-const BACKGROUND_WIDTH = (BACKGROUND_HEIGHT * 3973) / 3000;
-const BACKGROUND_BASELINE = 500 / 844;
+const BACKGROUND_HEIGHT_RATIO = 1;
+const BACKGROUND_ASPECT_RATIO = 3973 / 3000;
 export type WorldControls = {
   model: FantasyGame;
   act: (action: () => void) => void;
@@ -207,7 +207,7 @@ export function PhaserWorld({
         this.hero.on("animationupdate", reportFrame);
         this.hero.on("animationstart", reportFrame);
         this.guides = this.add.graphics().setDepth(15);
-        this.loot = new BattleLoot(this);
+        this.loot = new BattleLoot(this, ACTOR_DEPTH);
         parent.dataset.layers = JSON.stringify(
           layers.map((layer) => layer.url),
         );
@@ -217,10 +217,6 @@ export function PhaserWorld({
         parent.dataset.actorDepth = String(ACTOR_DEPTH);
         parent.dataset.foregroundDepth = String(FOREGROUND_DEPTH);
         parent.dataset.playerPosition = JSON.stringify(PLAYER_POSITION);
-        parent.dataset.backgroundSize = JSON.stringify({
-          width: BACKGROUND_WIDTH,
-          height: BACKGROUND_HEIGHT,
-        });
         parent.dataset.walkFrame = this.hero.frame.name;
         this.layout();
         this.sync();
@@ -248,9 +244,13 @@ export function PhaserWorld({
         const logicalHeight = height / scale;
         if (model.chunks.viewportHeight !== logicalHeight)
           model.resize(logicalHeight);
-        const tileWidth = BACKGROUND_WIDTH * scale;
-        const tileHeight = BACKGROUND_HEIGHT * scale;
-        const imageTop = model.playerY * scale - tileHeight * BACKGROUND_BASELINE;
+        const tileHeight = height * BACKGROUND_HEIGHT_RATIO;
+        const tileWidth = tileHeight * BACKGROUND_ASPECT_RATIO;
+        parent.dataset.backgroundSize = JSON.stringify({
+          width: tileWidth,
+          height: tileHeight,
+        });
+        const imageTop = 0;
         parent.dataset.backgroundBottom = String(imageTop + tileHeight);
         const count = Math.ceil(width / tileWidth) + 1;
         this.scenery.forEach((images, layerIndex) => {
@@ -269,24 +269,23 @@ export function PhaserWorld({
         this.hero
           .setPosition(
             PLAYER_POSITION.x * scale,
-            (model.playerY + PLAYER_POSITION.y) * scale,
+            imageTop + tileHeight * PLAYER_POSITION.y,
           )
           .setDisplaySize(ACTOR_SIZE, ACTOR_SIZE);
         this.heroShadow
           .setPosition(
             PLAYER_POSITION.x * scale,
-            (model.playerY + PLAYER_POSITION.y) * scale - 3,
+            imageTop + tileHeight * PLAYER_POSITION.y - 3,
           )
           .setDisplaySize(ACTOR_SIZE * 0.75, 4);
         this.updateEnemies(true);
         this.renderParallax();
       }
       private renderParallax() {
-        const scale = this.scale.width / WORLD.width;
-        const tileWidth = BACKGROUND_WIDTH * scale;
+        const tileHeight = this.scale.height * BACKGROUND_HEIGHT_RATIO;
+        const tileWidth = tileHeight * BACKGROUND_ASPECT_RATIO;
         this.scenery.forEach((images, index) => {
-          const offset =
-            (model.distance * scale * layers[index].speed) % tileWidth;
+          const offset = (model.distance * layers[index].speed) % tileWidth;
           images.forEach((image, copy) =>
             image.setX(copy * tileWidth - offset),
           );
@@ -306,7 +305,8 @@ export function PhaserWorld({
           if (visible) {
             const scale = this.scale.width / WORLD.width;
             const x = ENEMY_POSITION.x * scale;
-            const y = (model.playerY + ENEMY_POSITION.y) * scale;
+            const tileHeight = this.scale.height * BACKGROUND_HEIGHT_RATIO;
+            const y = tileHeight * ENEMY_POSITION.y;
             this.shadows.push(
               this.add
                 .ellipse(
@@ -364,19 +364,19 @@ export function PhaserWorld({
       }
       sync() {
         if (!this.hero) return;
-        const walking =
+        const isWalking =
           active &&
           !model.paused &&
           model.state === GameState.walking &&
-          !document.hidden &&
-          !motion.current;
+          !document.hidden;
+        setWalkingSound(isWalking);
         if (model.state !== GameState.walking) {
           if (this.hero.texture.key !== "scholar-idle") {
             this.hero.stop().setTexture("scholar-idle");
             this.hero.setDisplaySize(ACTOR_SIZE, ACTOR_SIZE);
             parent.dataset.walkFrame = this.hero.frame.name;
           }
-        } else if (walking) {
+        } else if (isWalking && !motion.current) {
           if (this.hero.texture.key !== "scholar") {
             this.hero.play("scholar-walk");
             this.hero.setDisplaySize(ACTOR_SIZE, ACTOR_SIZE);
@@ -384,7 +384,11 @@ export function PhaserWorld({
         } else this.hero.anims.pause();
         if (parent.dataset.heroTexture !== this.hero.texture.key)
           parent.dataset.heroTexture = this.hero.texture.key;
-        if (model.enemyDefeated && !this.dropped) { this.loot.burst(model.distance); this.dropped = true; }
+        if (model.enemyDefeated && !this.dropped) {
+          this.loot.burst(model.distance);
+          playTreasureSound();
+          this.dropped = true;
+        }
         if (!model.enemyDefeated) this.dropped = false;
         this.updateEnemies();
         parent.dataset.phase = model.state;
@@ -399,7 +403,9 @@ export function PhaserWorld({
         if (disposed || !this.hero) return;
         const dt = active && !document.hidden && !model.paused ? Math.min(delta / 1000, WORLD.maxDelta) : 0;
         model.update(dt);
-        const loot = this.loot.update(dt, model, motion.current);
+        const scale = this.scale.width / WORLD.width;
+        const lootGround = PLAYER_POSITION.y * this.scale.height / scale;
+        const loot = this.loot.update(dt, model, motion.current, lootGround);
         parent.dataset.lootCount = String(loot.count);
         parent.dataset.lootPhase = loot.phase;
         this.renderParallax();
@@ -434,6 +440,7 @@ export function PhaserWorld({
     engine.canvas.addEventListener("webglcontextlost", lost);
     return () => {
       disposed = true;
+      setWalkingSound(false);
       resize.disconnect();
       engine.canvas.removeEventListener("webglcontextlost", lost);
       engine.destroy(true);

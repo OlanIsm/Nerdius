@@ -27,8 +27,10 @@ export function HomeScreen({
   onForge,
   onForgeSettled,
   onReadForge,
+  onSignOut,
 }: ScreenProps & {
   onSelectExpedition: (expedition: Expedition) => void;
+  onSignOut: () => void;
   onContinue: () => void;
   lastAdventure: {
     expedition: Expedition;
@@ -327,6 +329,7 @@ export function HomeScreen({
           />
         ))}
       </div>
+      <Button label="Sign out" tone="quiet" onPress={onSignOut} />
     </div>
   );
 }
