@@ -1,4 +1,4 @@
-import type { Region } from "./state.ts";
+import type { Region } from "./types.ts";
 
 const lessons = [
   {

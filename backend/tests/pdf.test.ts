@@ -45,6 +45,28 @@ test("corrupt and zero-page PDFs fail before contacting Gemini", async (t) => {
   await assert.rejects(generatePdfExpedition("empty.pdf", Buffer.from(await empty.save({ addDefaultPage: false }))), /1-1000 pages/);
 });
 
+test("PDF generation accepts an injected provider and validates its output", async () => {
+  const document = await PDFDocument.create();
+  document.addPage().drawText("Kinetic energy: Ek = 1/2 m v^2.");
+  const pdf = Buffer.from(await document.save());
+  let calls = 0;
+  const expedition = await generatePdfExpedition("notes.pdf", pdf, async (bytes, schema, pages, instruction) => {
+    calls++;
+    assert.deepEqual(bytes, pdf);
+    assert.equal(pages, 1);
+    assert.ok(schema);
+    assert.match(instruction.user, /exactly 10/);
+    assert.match(instruction.user, /Never substitute generic starter content/);
+    assert.match(instruction.system, /untrusted source material/);
+    return content();
+  });
+  assert.equal(calls, 1);
+  assert.equal(expedition.file, "notes.pdf");
+  assert.equal(expedition.regions[0].questionBank?.length, 10);
+  await assert.rejects(generatePdfExpedition("notes.pdf", pdf, async () => ({ readable: false })), /no readable study material/);
+  await assert.rejects(generatePdfExpedition("notes.pdf", pdf, async () => ({ readable: true })), /failed validation/);
+});
+
 test("forge sends PDF bytes to Gemini, persists validated content and never saves failed generations", async (t) => {
   const previous = { ...process.env };
   Object.assign(process.env, { SUPABASE_URL: "https://test.supabase.co", SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test", SUPABASE_SECRET_KEY: "sb_secret_test", GEMINI_API_KEY: "test-key" });
@@ -76,6 +98,9 @@ test("forge sends PDF bytes to Gemini, persists validated content and never save
       assert.ok(payload.generationConfig.responseJsonSchema);
       if (mode === "network") throw new Error("Network unavailable");
       if (mode === "quota") return Response.json({}, { status: 429 });
+      if (mode === "missing-model") return Response.json({}, { status: 404 });
+      if (mode === "unauthorized") return Response.json({}, { status: 401 });
+      if (mode === "forbidden") return Response.json({}, { status: 403 });
       if (mode === "busy") return Response.json({}, { status: 503 });
       if (mode === "busy-once" && generationRequests === 1) return Response.json({}, { status: 503 });
       if (mode === "input-limit") return Response.json({ error: { status: "INVALID_ARGUMENT", message: "Input token count exceeds the context limit" } }, { status: 400 });
@@ -124,7 +149,7 @@ test("forge sends PDF bytes to Gemini, persists validated content and never save
   const reload = await nativeFetch(base, { headers: { Authorization: "Bearer test-token" } });
   assert.equal((await reload.json()).expeditions[1].regions[0].questions, 10);
   const before = structuredClone(state);
-  for (const [failure, status] of [["unreadable", 422], ["invalid", 502], ["truncated", 502], ["bad-json", 502], ["quota", 503], ["busy", 503], ["input-limit", 422], ["network", 504]] as const) {
+  for (const [failure, status] of [["unreadable", 422], ["invalid", 502], ["truncated", 502], ["bad-json", 502], ["quota", 503], ["busy", 503], ["input-limit", 422], ["network", 504], ["missing-model", 502], ["unauthorized", 502], ["forbidden", 502]] as const) {
     mode = failure;
     const attemptsBefore: number = generationRequests;
     const failed = await forge();
@@ -134,6 +159,8 @@ test("forge sends PDF bytes to Gemini, persists validated content and never save
     assert.equal(generationRequests - attemptsBefore, failure === "busy" ? 3 : 1);
     if (failure === "busy") assert.match(error, /after 3 attempts/);
     if (failure === "input-limit") assert.match(error, /input limit/);
+    if (failure === "missing-model") assert.match(error, /GEMINI_MODEL/);
+    if (failure === "unauthorized" || failure === "forbidden") assert.match(error, /GEMINI_API_KEY/);
     assert.equal(uploads, 1);
     assert.equal(writes, 1);
     assert.deepEqual(state, before);

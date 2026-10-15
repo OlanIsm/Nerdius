@@ -8,6 +8,8 @@ ALWAYS COMMIT AND PUSH TO GITHUB AFTER MAKING CHANGES AND USE DETAILED COMMIT ME
 
 `backend/src/app.ts` merakit middleware dan router; `server.ts` menjalankan server. `modules/account/` memiliki autentikasi dan `/api/me`; `modules/game/` memiliki route, aturan, summon dan penyimpanan progres; `platform/supabase.ts` membuat client Supabase. `modules/game/pdf.ts` memvalidasi PDF/soal; `platform/gemini.ts` memanggil Gemini. Pertahankan endpoint `/api` saat memindahkan kode.
 
+Domain types ada di `modules/game/types.ts`; `snapshot.ts` membuat respons publik; `forge.ts` memiliki orkestrasi upload/Storage/state. Instruksi/schema belajar berada di `pdf.ts`, transport/retry Gemini di `platform/gemini.ts`. Frontend `src/modules/game/` memiliki DTO/API dan hook game/adventure/forge; `src/platform/auth.ts` memiliki sesi browser. Detail batas modul dan sequence ada di `docs/architecture.md`.
+
 `modules/game/battle.ts` memeriksa jawaban, kelulusan dan reward. Question bank hanya ada di backend. Snapshot mengirim soal berikutnya tanpa kunci; setelah dijawab, feedback boleh mengirim kunci dan pembahasan soal tersebut. `start` menerima expeditionId/chapter; `restart` menerima battleId/expeditionId/chapter dan membuat attempt baru dengan HP penuh tanpa mengubah resource/progres; `exit` menerima battleId dan menghapus attempt/jawaban tersimpan, sehingga Start berikutnya mulai soal 1 dengan HP penuh; `answer` menerima battleId/questionId/selectedIndex; `complete` membutuhkan battleId dan semua soal sudah dijawab. Combat: tepat 10 soal per region baru; HP pemain 500, musuh 100. Benar memberi 50 damage musuh; salah memberi 50 damage pemain. Musuh yang kalah diganti selama soal tersisa. Selesai semua soal dengan HP > 0 menang; HP 0 kalah. HP dihitung backend dari jawaban tersimpan. Bonus chapter 450 gold/100 XP hanya untuk pertama kali lulus chapter. Setiap monster kalah memberi pending loot 100 gold/50 gems; hanya dibayar saat complete menang, termasuk replay. Exit/restart/kalah membuang pending loot. Retry identik tidak menggandakan jawaban/reward. Tutorial akun lama mendapat question bank tanpa reset progres. DOCX dan upload lama tanpa bank belum bisa battle; jangan tambahkan soal palsu sebagai fallback PDF.
 
 ## Progress Nerdungeon - 2026-10-03
@@ -51,6 +53,8 @@ Status harus mengikuti bukti. Jalur belajar lokal dengan Supabase/Gemini live su
 
 ### On progress - tuntaskan sebelum klaim MVP
 
+Verifikasi refactor 2026-10-07: 16 tes backend, typecheck backend/frontend, lint/build, test:game, test:web, test:forge dan test:summon lulus; screenshot mobile/desktop diperiksa. Probe live PDF 1 halaman/1129 byte gagal: Gemini 3.5 dan 3.8 HTTP 503 setelah 3 attempt; 2.5 HTTP 404 pada generate. Pemilik menunda pekerjaan PDF/provider dan mempertimbangkan model lokal nanti. Jangan klaim konversi live sudah pulih atau provider lokal sudah terpasang.
+
 | Cek | Prioritas | Pekerjaan berikutnya | Selesai jika |
 | --- | --- | --- | --- |
 | [ ] | P0 | Tinjau materi, pertanyaan dan sumber halaman dari PDF nyata pengguna, termasuk scan dan dokumen panjang. | Soal relevan, pembahasan benar, sumber dapat ditelusuri; dokumen tidak terbaca gagal jelas tanpa fallback contoh. |
@@ -71,8 +75,14 @@ Status harus mengikuti bukti. Jalur belajar lokal dengan Supabase/Gemini live su
 
 ## Verification handoff
 
-Dari root: `npm run dev` menjalankan frontend dan backend bersama. Jika terpisah: `npm run backend:dev` dan `npm run frontend:dev`. PORT backend/.env harus 3001; proxy Vite menuju 127.0.0.1:3001, frontend 5173 strictPort. Port 3000 pada workspace ini dipakai Next.js project lain; jangan arahkan API Nerdungeon ke situ. Gate lokal: `npm --prefix backend test`, `npm --prefix backend run typecheck`, `npm run typecheck`, `npm run lint`, `npm run build`. `npm run test:web` dan `npm run test:forge` membutuhkan frontend aktif; `npm run test:learning` membutuhkan frontend/backend aktif dan backend/.env. `npm --prefix backend run verify:pdf` menjalankan server ephemeral sendiri. Tes live memakai quota Gemini dan akun/file sementara yang dibersihkan di finally. Chrome Windows default; override CHROME_PATH bila perlu. Screenshot di test-results/ diabaikan Git. Windows: gunakan npm.cmd jika npm.ps1 diblokir. Detail payload API ada di backend/README.md.
+Dari root: `npm run dev` menjalankan frontend dan backend bersama. Jika terpisah: `npm run backend:dev` dan `npm run frontend:dev`. PORT backend/.env harus 4000; proxy Vite menuju 127.0.0.1:4000, frontend 5173 strictPort. Port 3000 pada workspace ini dipakai Next.js project lain; jangan arahkan API Nerdungeon ke situ. Gate lokal: `npm --prefix backend test`, `npm --prefix backend run typecheck`, `npm run typecheck`, `npm run lint`, `npm run build`. `npm run test:web` dan `npm run test:forge` membutuhkan frontend aktif; `npm run test:learning` membutuhkan frontend/backend aktif dan backend/.env. `npm --prefix backend run verify:pdf` menjalankan server ephemeral sendiri. Tes live memakai quota Gemini dan akun/file sementara yang dibersihkan di finally. Chrome Windows default; override CHROME_PATH bila perlu. Screenshot di test-results/ diabaikan Git. Windows: gunakan npm.cmd jika npm.ps1 diblokir. Detail payload API ada di backend/README.md.
 
 ### Summon UI handoff
 
 `frontend/src/screens/GachaScreen.tsx` owns one paid summon request and the ceremony lifetime; `components/SummonRitual.tsx` owns chest/card stages; `components/summonAudio.ts` synthesizes short effects; `summon.css` contains motion. Reuse existing chest/item art. Do not send another summon request while revealing/collecting or automatically retry a failed purchase. `npm run test:summon` needs the Vite server, uses mocked Auth/API plus the backend summon domain, and spends no live gems.
+
+### Settings handoff - 2026-10-07
+
+Header membuka `SettingsScreen.tsx`: bento Profile, Preference, Plan dan Account. Nama, summon sound dan reduce motion disimpan lokal melalui `modules/settings/preferences.ts`; account membaca `/api/me`. Harga per bulan: Free Rp0, Traveler Rp35.000, Master Rp80.000. Paid plan masih Coming soon; belum ada checkout, benefit atau entitlement. Persentase ekspedisi dan copy Hub berlebih dihapus; progres chapter tetap memakai map.
+
+`npm run test:settings` membutuhkan Vite aktif dan memakai mock Auth/API; membuktikan navigasi, persistensi nama/preferensi, harga bulanan, retry account dan layout 360/430/1280 px. Pada perubahan ini test:settings/forge/summon/game/web, 16 tes backend, typecheck backend/frontend, lint dan build lulus; review visual ship. Bukti lokal ini tidak membuktikan billing atau deploy publik. Build masih memperingatkan ukuran chunk Phaser.

@@ -1,10 +1,6 @@
-import type { GameData, Question, Region } from "./state.ts";
+import type { GameData, Question, Region, Battle } from "./types.ts";
 
 export class GameActionError extends Error {}
-export type Answer = { questionId: string; selectedIndex: number; correct: boolean };
-export type Battle = { id: string; expeditionId: string; chapter: number; answers: Answer[]; status: "active" | "passed" | "failed"; goldReward: number; gemsReward?: number; xpReward: number };
-export type BattleResult = Battle & { total: number; correct: number; completedAt: string };
-
 function combat(battle: Battle, total: number) {
   const correct = battle.answers.filter((answer) => answer.correct).length;
   const playerHp = Math.max(0, 500 - (battle.answers.length - correct) * 50);

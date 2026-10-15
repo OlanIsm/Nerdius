@@ -4,7 +4,7 @@ import { Button, Icon, useReducedMotion } from "../components/GameUI";
 import type { WorldControls } from "../game/PhaserWorld";
 import { GameState, type GamePhase } from "../game/types";
 import type { ScreenProps } from "../types";
-import type { BattleView } from "../gameApi";
+import type { BattleView } from "../modules/game/types";
 import { BattleQuiz } from "../components/BattleQuiz";
 import {
   playAttackSound,
@@ -63,8 +63,8 @@ export function BattleScreen({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string>();
   const recorded = useRef(false);
-  const submittedAnswerKey = useRef<string>();
-  const lastFeedbackKey = useRef<string>();
+  const submittedAnswerKey = useRef<string | undefined>(undefined);
+  const lastFeedbackKey = useRef<string | undefined>(undefined);
   const loadingStarted = useRef(0);
   const previousHp = useRef<{ battleId: string; hp: number } | undefined>(
     undefined,

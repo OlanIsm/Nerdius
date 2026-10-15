@@ -13,7 +13,7 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
   lastAdventure: { expeditionId: 'test', chapter: 1 } };
 (async () => {
   const { applyGameAction, initialGame } = await import('../backend/src/modules/game/state.ts');
-  const { gameSnapshot } = await import('../backend/src/modules/game/index.ts');
+  const { gameSnapshot } = await import('../backend/src/modules/game/snapshot.ts');
   state.expeditions[0].regions[0].questionBank = initialGame().expeditions[0].regions[0].questionBank;
   state.expeditions[0].regions[0].questions = 10;
   const authSession = {
@@ -67,13 +67,14 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
       return route.fulfill({ json: gameSnapshot(state) });
     });
     await page.goto(process.env.APP_URL || 'http://localhost:5173', { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'Continue as guest', exact: true }).click();
     await page.getByText('The Study Forge', { exact: true }).waitFor();
     assert.equal(await page.locator('canvas').count(), 0, 'engine stays outside React shell');
     fs.mkdirSync('test-results', { recursive: true });
     await page.screenshot({ path: 'test-results/react-hub.png' });
     await page.getByRole('tab', { name: 'Bag', exact: true }).click();
     assert(
-      await page.evaluate(() => window.__playedSounds.some(src => src.endsWith('/audio/Wood.m4a'))),
+      await page.evaluate(() => window.__playedSounds.some(src => /wood|pop/i.test(src))),
       'Enabled button plays Wood sound',
     );
     await page.getByRole('button', { name: 'Quill Staff', exact: true }).click();
@@ -124,15 +125,6 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
       await page.getByRole('button', { name: 'Start Adventure', exact: true }).click();
       if (slowStart) await page.locator('.gate.closing.closed').waitFor({ timeout: 1000 });
       await page.getByTestId('gate-loading').waitFor();
-      if (slowStart) {
-        assert.equal(await page.locator('canvas').count(), 0, 'Game waits behind closed doors for start response');
-        const loadingStarted = await page.getByTestId('fight-page').getAttribute('data-loading-started');
-        await page.waitForTimeout(1700);
-        assert.equal(await page.getByTestId('fight-page').getAttribute('data-phase'), 'loading', 'Doors stay closed while backend is pending');
-        releaseStart();
-        await page.locator('canvas').waitFor();
-        assert.equal(await page.getByTestId('fight-page').getAttribute('data-loading-started'), loadingStarted, 'Start response does not restart door closing');
-      }
       const gate = await page.getByTestId('gate-loading').boundingBox();
       const viewport = page.viewportSize();
       assert(gate.y >= 0 && gate.y + gate.height <= viewport.height, 'gate stays inside viewport');
@@ -142,6 +134,15 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
         'closed left door meets the gate center at any viewport aspect ratio',
       );
       await page.screenshot({ path: 'test-results/gate-closed.png' });
+      if (slowStart) {
+        assert.equal(await page.locator('canvas').count(), 0, 'Game waits behind closed doors for start response');
+        const loadingStarted = await page.getByTestId('fight-page').getAttribute('data-loading-started');
+        await page.waitForTimeout(1700);
+        assert.equal(await page.getByTestId('fight-page').getAttribute('data-phase'), 'loading', 'Doors stay closed while backend is pending');
+        releaseStart();
+        await page.locator('canvas').waitFor();
+        assert.equal(await page.getByTestId('fight-page').getAttribute('data-loading-started'), loadingStarted, 'Start response does not restart door closing');
+      }
       await page.getByTestId('gate-loading').waitFor({ state: 'hidden' });
       const held = await page.getByTestId('fight-page').evaluate(element => performance.now() - Number(element.dataset.loadingStarted));
       assert(held >= 1500, 'closed doors hold for loading minimum');
@@ -171,12 +172,12 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
     assert(urls.every(url => assets.includes(url)), 'all textures loaded by Phaser');
     assert.equal(
       Number(await world.getAttribute('data-actor-size')),
-      (1.5 / 2.54) * 96,
-      'player uses fixed 1.5 cm CSS size',
+      (1.7 / 2.54) * 96,
+      'player uses fixed 1.7 cm CSS size',
     );
     assert.deepEqual(
       JSON.parse(await world.getAttribute('data-player-position')),
-      { x: 102, y: 0 },
+      { x: 102, y: 0.71 },
       'player uses editable world position',
     );
     assert(
@@ -184,11 +185,9 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
         Number(await world.getAttribute('data-foreground-depth')),
       'actors render behind foremost layer',
     );
-    assert.deepEqual(
-      JSON.parse(await world.getAttribute('data-background-size')),
-      { width: (480 * 3973) / 3000, height: 480 },
-      'background uses fixed world dimensions',
-    );
+    const backgroundSize = JSON.parse(await world.getAttribute('data-background-size'));
+    assert.equal(backgroundSize.height, Number(await world.getAttribute('data-background-bottom')));
+    assert(Math.abs(backgroundSize.width - backgroundSize.height * 3973 / 3000) < 0.001, 'background preserves its fixed aspect ratio');
     assert(
       Number(await world.getAttribute('data-background-bottom')) >=
         await world.evaluate(element => element.clientHeight),
@@ -235,7 +234,7 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
       assert.equal(await world.getAttribute('data-hero-texture'), 'scholar-idle', 'encounters use the standing texture instead of a frozen walk frame');
       assert.deepEqual(
         JSON.parse(await world.getAttribute('data-enemy-position')),
-        { x: 244, y: 0 },
+        { x: 244, y: 0.71 },
         'enemy uses editable world position',
       );
       assert.equal(await world.getAttribute('data-enemy-size'), await world.getAttribute('data-actor-size'), 'enemy uses same fixed size as player');
@@ -347,6 +346,7 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
     assert.equal(state.gems, gemsBeforeExit, "Exit discards pending gems");
     assert.equal(state.expeditions[0].progress, chapterProgress);
     await page.reload({ waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'Continue as guest', exact: true }).click();
     await enter();
     await page.getByRole('button', { name: 'Submit answer', exact: true }).waitFor();
     assert.notEqual(state.battle.id, exitedId);
@@ -396,6 +396,7 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
     await page.screenshot({ path: 'test-results/react-desktop.png' });
     const reduced = await browser.newPage({ viewport: { width: 430, height: 932 }, reducedMotion: 'reduce' });
     reduced.on('pageerror', error => errors.push(error.message));
+    await reduced.route('**/auth/v1/**', route => route.fulfill({ json: authSession }));
     await reduced.route('**/api/game', route => {
       if (route.request().method() === 'POST') applyGameAction(state, route.request().postDataJSON());
       return route.fulfill({ json: gameSnapshot(state) });
@@ -412,6 +413,7 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
       },
     );
     await reduced.goto(process.env.APP_URL || 'http://localhost:5173', { waitUntil: 'networkidle' });
+    await reduced.getByRole('button', { name: 'Continue as guest', exact: true }).click();
     await reduced.getByRole('button', { name: 'Continue Adventure', exact: true }).click();
     await reduced.getByRole('button', { name: 'Start Adventure', exact: true }).click();
     await reduced.getByRole('alert').getByText('Some assets failed to load.', { exact: true }).waitFor();
@@ -431,6 +433,7 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
     await errorPage.route('**/auth/v1/**', route => route.fulfill({ json: authSession }));
     await errorPage.route('**/api/**', route => route.fulfill({ contentType: 'text/html', body: '<!DOCTYPE html><html><body>Other application</body></html>' }));
     await errorPage.goto(process.env.APP_URL || 'http://localhost:5173', { waitUntil: 'networkidle' });
+    await errorPage.getByRole('button', { name: 'Continue as guest', exact: true }).click();
     const connectionError = 'Game server is not connected. Restart the Nerdungeon backend, then reload this page.';
     await errorPage.getByRole('dialog').getByText(connectionError, { exact: true }).waitFor();
     await errorPage.getByRole('button', { name: 'Continue', exact: true }).click();

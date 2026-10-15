@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { art } from "../assets";
 import { playAuthTextBoxSound, setAuthMusic } from "../components/gameAudio";
-import { getSupabaseClient } from "../gameApi";
+import { getSupabaseClient } from "../platform/auth";
 
 type Mode = "login" | "signup";
 

@@ -1,11 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { initialGame, type GameData } from "./state.ts";
+import { initialGame } from "./state.ts";
+import type { GameData } from "./types.ts";
 import { tutorialRegions } from "./tutorial.ts";
 
-type Client = SupabaseClient;
 type Row = { state: GameData; version: number };
 
-export async function readState(client: Client, userId: string): Promise<Row> {
+export async function readState(client: SupabaseClient, userId: string): Promise<Row> {
   const existing = await client.from("game_states").select("state,version").eq("user_id", userId).maybeSingle();
   if (existing.error) throw existing.error;
   if (existing.data) {
@@ -33,7 +33,7 @@ export async function readState(client: Client, userId: string): Promise<Row> {
   return raced.data as Row;
 }
 
-export async function changeState<T>(client: Client, userId: string, change: (game: GameData) => T): Promise<{ game: GameData; result: T }> {
+export async function changeState<T>(client: SupabaseClient, userId: string, change: (game: GameData) => T): Promise<{ game: GameData; result: T }> {
   for (let attempt = 0; attempt < 5; attempt++) {
     const row = await readState(client, userId);
     const game = structuredClone(row.state);

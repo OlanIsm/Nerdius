@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const { chromium } = require('@playwright/test');
 (async () => {
   const { initialGame, applyGameAction } = await import('../backend/src/modules/game/state.ts');
-  const { gameSnapshot } = await import('../backend/src/modules/game/index.ts');
+  const { gameSnapshot } = await import('../backend/src/modules/game/snapshot.ts');
   const state = initialGame(); state.gems = 2500;
   const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe' });
   try {
@@ -31,6 +31,7 @@ const { chromium } = require('@playwright/test');
       return route.fulfill({ json: gameSnapshot(state, rewards) });
     });
     await page.goto(process.env.APP_URL || 'http://localhost:5173', { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'Continue as guest', exact: true }).click();
     await page.getByRole('tab', { name: 'Bazaar', exact: true }).click();
     await page.getByRole('button', { name: 'Summon 10x', exact: true }).click();
     await page.evaluate(() => document.querySelector('.summon-action.ten').click());
@@ -118,6 +119,7 @@ const { chromium } = require('@playwright/test');
     for (const balance of [0, 99, 899]) {
       state.gems = balance;
       await page.reload({ waitUntil: 'networkidle' });
+      await page.getByRole('button', { name: 'Continue as guest', exact: true }).click();
       await page.getByRole('tab', { name: 'Bazaar', exact: true }).click();
       for (const count of balance < 100 ? [1, 10] : [10]) {
         await page.getByRole('button', { name: `Summon ${count}x`, exact: true }).click();

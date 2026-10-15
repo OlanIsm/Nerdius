@@ -84,3 +84,13 @@ text, honey-gold buttons, and olive equipment accents. Region briefing keeps
 its approved composition. Hub shares the map-paper background, and its active
 expeditions use the same card component and data as the Expedition list. Shared
 RealmFrame and RealmButton components own the lighter palette.
+
+## October 2026: Settings extension (React/Vite web)
+
+Settings extends the existing parchment, sage, teal and honey-gold world. The player header opens a two-column bento: a wide character/name Profile tile, compact Preference and Account tiles, then a wide gold Plan tile. Preserve the existing bundled character and icons; no new raster artwork was introduced.
+
+Use warm brown text and beveled borders, gently rounded tiles (16px), Rubik headings, Epilogue body text and Space Grotesk labels. Tiles have a short lift/press response. Keep the compact two-column arrangement on phones; below 370px, reduce tile padding and avatar size. Back buttons and form controls have 48px minimum height, visible focus states, and headings receive focus after section navigation.
+
+Profile and preferences use concise parchment forms with explicit save/error feedback. Names persist in this browser; sound shares the existing Bazaar setting, and reduced motion respects both the saved preference and the OS. Account presents real authenticated identity with loading/error/retry states. Plan cards show Free Rp0, Traveler Rp35.000 and Master Rp80.000 per month, with disabled Coming soon actions for paid plans. No billing, benefits or entitlements are implied.
+
+Keep navigation copy short: no expedition percentage indicators; upload guidance is PDF, DOCX · Max 25 MB. Finish review: **ship**, no material findings after inspection of mobile/desktop captures. This section records only this existing-world web extension; earlier platform metadata is outside its scope.

@@ -1,6 +1,7 @@
+import { GameActionError } from "../src/modules/game/battle.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { applyGameAction, GameActionError, initialGame } from "../src/modules/game/state.ts";
+import { applyGameAction, initialGame } from "../src/modules/game/state.ts";
 import { app } from "../src/app.ts";
 import { readState } from "../src/modules/game/store.ts";
 

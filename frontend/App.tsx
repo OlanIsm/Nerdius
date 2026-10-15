@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { art, icons } from "./src/assets";
-import { Button } from "./src/components/GameUI";
+import { Button, useReducedMotion } from "./src/components/GameUI";
 import { PlayerHeader } from "./src/components/PlayerHeader";
 import { BottomNavItem } from "./src/components/BottomNavItem";
 import { HomeScreen } from "./src/screens/HomeScreen";
@@ -8,23 +8,18 @@ import {
   AdventureScreen,
   RegionScreen,
   RegionDetailScreen,
-  expeditions,
-  type Expedition,
-  type Region,
 } from "./src/screens/AdventureScreen";
 import { InventoryScreen } from "./src/screens/InventoryScreen";
 import { GachaScreen } from "./src/screens/GachaScreen";
-import {
-  forgeRequest,
-  gameRequest,
-  getSupabaseClient,
-  type GameData,
-} from "./src/gameApi";
+import { getSupabaseClient } from "./src/platform/auth";
+import { AuthScreen } from "./src/screens/AuthScreen";
+import { playButtonSound } from "./src/components/gameAudio";
+import { useGame } from "./src/modules/game/useGame";
+import { useAdventure } from "./src/modules/game/useAdventure";
 import type { Screen } from "./src/types";
 import { ui } from "./src/theme";
 import { BattleScreen } from "./src/screens/BattleScreen";
-import { AuthScreen } from "./src/screens/AuthScreen";
-import { playButtonSound } from "./src/components/gameAudio";
+import { SettingsScreen } from "./src/screens/SettingsScreen";
 const navigation = [
   { screen: "Hub", icon: icons.hub },
   { screen: "Expedition", icon: icons.map },
@@ -38,35 +33,17 @@ const shellAssets = [
   ...Object.values(icons),
   art.character,
 ];
-function findExpedition(items: Expedition[], selected: Expedition) {
-  return items.find((item) =>
-    selected.id ? item.id === selected.id : item.file === selected.file,
-  );
-}
 export default function App() {
-  const [startingBattle, setStartingBattle] = useState(false);
+  const reducedMotion = useReducedMotion();
+  const settingsFrom = useRef<Screen>("Hub");
   const [authStatus, setAuthStatus] = useState<
     "loading" | "signed-in" | "signed-out"
   >("loading");
   const [authError, setAuthError] = useState<string>();
-  const [accountOpen, setAccountOpen] = useState(false);
-  const [battleEntry, setBattleEntry] = useState(0);
-  const startPending = useRef(false);
   const [summoning, setSummoning] = useState(false);
   const [screen, setScreen] = useState<Screen>("Hub");
   const [message, setMessage] = useState<string>();
-  const [gameData, setGameData] = useState<GameData>();
   const [forgeNotice, setForgeNotice] = useState<string>();
-  const [selectedExpedition, setSelectedExpedition] = useState<Expedition>(
-    expeditions[0],
-  );
-  const [selectedRegion, setSelectedRegion] = useState<Region>(
-    expeditions[0].regions[0],
-  );
-  const [lastAdventure, setLastAdventure] = useState({
-    expedition: expeditions[0],
-    region: expeditions[0].regions[0],
-  });
   const [visited, setVisited] = useState(() => new Set<Screen>(["Hub"]));
   const pages = useRef<Partial<Record<Screen, HTMLDivElement | null>>>({});
   const main = useRef<HTMLElement>(null);
@@ -102,15 +79,6 @@ export default function App() {
           return;
         }
         setAuthStatus("signed-in");
-        try {
-          setGameData(await gameRequest());
-        } catch (requestError) {
-          setMessage(
-            requestError instanceof Error
-              ? requestError.message
-              : "Backend unavailable",
-          );
-        }
       } catch (error) {
         if (!active) return;
         setAuthError(
@@ -129,23 +97,14 @@ export default function App() {
   function enterAuthenticatedApp() {
     setAuthError(undefined);
     setAuthStatus("signed-in");
-    void gameRequest()
-      .then(setGameData)
-      .catch((error) =>
-        setMessage(
-          error instanceof Error ? error.message : "Backend unavailable",
-        ),
-      );
   }
   async function signOut() {
     try {
       const { error } = await getSupabaseClient().auth.signOut();
       if (error) throw error;
-      setGameData(undefined);
-      setAccountOpen(false);
+      game.reset();
       setAuthStatus("signed-out");
     } catch (error) {
-      setAccountOpen(false);
       setMessage(error instanceof Error ? error.message : "Could not sign out.");
     }
   }
@@ -159,39 +118,14 @@ export default function App() {
       main.current?.focus({ preventScroll: true });
     });
   }, []);
-  async function perform(action: Record<string, unknown>) {
-    const data = await gameRequest(action);
-    setGameData(data);
-    return data;
-  }
-  const availableExpeditions = gameData?.expeditions ?? expeditions;
-  const currentExpedition =
-    findExpedition(availableExpeditions, selectedExpedition) ??
-    selectedExpedition;
-  const currentRegion =
-    currentExpedition.regions.find(
-      (item) => item.chapter === selectedRegion.chapter,
-    ) ?? selectedRegion;
-  const recentExpedition = availableExpeditions.find(
-    (item) => item.id === gameData?.lastAdventure?.expeditionId,
-  );
-  const recentAdventure =
-    recentExpedition && gameData?.lastAdventure
-      ? {
-          expedition: recentExpedition,
-          region:
-            recentExpedition.regions.find(
-              (region) => region.chapter === gameData.lastAdventure!.chapter,
-            ) ?? recentExpedition.regions[0],
-        }
-      : {
-          expedition:
-            findExpedition(availableExpeditions, lastAdventure.expedition) ??
-            lastAdventure.expedition,
-          region: lastAdventure.region,
-        };
+  const game = useGame(setMessage, authStatus === "signed-in");
+  const { gameData, perform, forge } = game;
+  const {
+    startingBattle, battleEntry, availableExpeditions, currentExpedition, currentRegion, recentAdventure,
+    setSelectedExpedition, setSelectedRegion, startBattle, restartBattle,
+  } = useAdventure(game, navigate, setMessage);
   const props = { navigate, notify: setMessage };
-  const showShell = ["Hub", "Expedition", "Bazaar", "Bag"].includes(screen);
+  const showShell = ["Hub", "Expedition", "Bazaar", "Bag", "Settings"].includes(screen);
   if (authStatus !== "signed-in") {
     return (
       <div className="app-shell">
@@ -207,7 +141,7 @@ export default function App() {
   }
   return (
     <div className="app-shell">
-      <div className="app" data-screen={screen} data-summoning={summoning}>
+      <div className="app" data-screen={screen} data-summoning={summoning} data-reduced-motion={reducedMotion}>
         {screen === "Bag" && (
           <div
             className="bag-backdrop"
@@ -228,10 +162,17 @@ export default function App() {
             gold={gameData?.gold}
             gems={gameData?.gems}
             xp={gameData?.xp}
-            onPressProfile={() => setAccountOpen(true)}
+            onPressProfile={() => {
+              if (screen === "Settings") return;
+              settingsFrom.current = screen;
+              navigate("Settings");
+            }}
           />
         )}
         <main className="pages" ref={main} tabIndex={-1} aria-label={screen}>
+          {screen === "Settings" && <div className="page-scroll page-reveal" ref={(node) => { pages.current.Settings = node; }}>
+            <SettingsScreen onBack={() => navigate(settingsFrom.current)} />
+          </div>}
           {visited.has("Hub") && (
             <div
               className="page-scroll page-reveal"
@@ -245,16 +186,14 @@ export default function App() {
                 expeditions={availableExpeditions}
                 lastAdventure={recentAdventure}
                 onSignOut={() => void signOut()}
-                onForge={async (file) => {
-                  const data = await forgeRequest(file);
-                  setGameData(data);
-                  return data.expeditions[data.expeditions.length - 1];
-                }}
+                onForge={forge}
                 onForgeSettled={(result) => setForgeNotice(result === "ready" ? "Your adventure is ready" : "Your forge needs attention")}
                 onReadForge={() => setForgeNotice(undefined)}
                 onContinue={() => {
-                  setSelectedExpedition(recentAdventure.expedition);
-                  setSelectedRegion(recentAdventure.region);
+                  if (gameData) {
+                    setSelectedExpedition(recentAdventure.expedition);
+                    setSelectedRegion(recentAdventure.region);
+                  }
                   navigate("RegionDetail");
                 }}
                 onSelectExpedition={(expedition) => {
@@ -336,46 +275,7 @@ export default function App() {
                 expedition={currentExpedition}
                 region={currentRegion}
                 onBack={() => navigate("Region")}
-                onStart={async () => {
-                  if (startPending.current) return;
-                  startPending.current = true;
-                  setStartingBattle(true);
-                  setBattleEntry((value) => value + 1);
-                  navigate("Battle");
-                  try {
-                    let expedition = currentExpedition;
-                    if (!expedition.id) {
-                      const data = await gameRequest();
-                      setGameData(data);
-                      expedition =
-                        findExpedition(data.expeditions, expedition) ??
-                        expedition;
-                    }
-                    if (!expedition.id)
-                      throw new Error(
-                        "Adventure not found. Choose an expedition from the current list.",
-                      );
-                    await perform({
-                      action: "start",
-                      expeditionId: expedition.id,
-                      chapter: currentRegion.chapter,
-                    });
-                    setLastAdventure({
-                      expedition,
-                      region: currentRegion,
-                    });
-                  } catch (error) {
-                    navigate("RegionDetail");
-                    setMessage(
-                      error instanceof Error
-                        ? error.message
-                        : "Adventure failed to start",
-                    );
-                  } finally {
-                    startPending.current = false;
-                    setStartingBattle(false);
-                  }
-                }}
+                onStart={startBattle}
               />
             </div>
           )}
@@ -389,7 +289,7 @@ export default function App() {
               onAnswer={(questionId, selectedIndex) => perform({ action: "answer", battleId: gameData!.battle!.id, questionId, selectedIndex }).then(() => {})}
               onExit={() => perform({ action: "exit", battleId: gameData!.battle!.id }).then(() => {})}
               onComplete={() => perform({ action: "complete", battleId: gameData!.battle!.id }).then(() => {})}
-              onRestart={() => perform({ action: "restart", battleId: gameData!.battle!.id, expeditionId: currentExpedition.id, chapter: currentRegion.chapter }).then(() => setBattleEntry((value) => value + 1))}
+              onRestart={restartBattle}
             />
           )}
         </main>
@@ -414,13 +314,6 @@ export default function App() {
               />
             ))}
           </nav>
-        )}
-        {accountOpen && (
-          <Journal
-            message="Your progress is saved to this account. Sign out to return to the login screen."
-            dismiss={() => setAccountOpen(false)}
-            onSignOut={() => void signOut()}
-          />
         )}
         {message && (
           <Journal message={message} dismiss={() => setMessage(undefined)} />

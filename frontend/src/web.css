@@ -119,6 +119,14 @@ p {
   background: #f5efdc;
   overflow: clip;
 }
+.app[data-reduced-motion="true"] *,
+.app[data-reduced-motion="true"] *::before,
+.app[data-reduced-motion="true"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
 .pages {
   position: relative;
   flex: 1;
@@ -599,23 +607,7 @@ p {
   background: #eadfc1;
   overflow: hidden;
 }
-.tabs {
-  display: flex;
-  gap: 4px;
-  padding: 4px;
-  background: #eadfc1;
-  border: 1px solid #c1b294;
-  border-radius: 14px;
-}
-.tabs button {
-  flex: 1;
-  min-height: 48px;
-  padding: 8px;
-  border: 2px solid;
-  border-radius: 10px;
-  text-align: center;
-  font: 12px SpaceGrotesk_700Bold;
-}
+
 .journal {
   padding: 0;
   border: 0;

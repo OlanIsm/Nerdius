@@ -16,9 +16,24 @@ const state = {
       page.on('pageerror', error => errors.push(error.message));
       let reads = 0, release;
       const waiting = new Promise(resolve => { release = resolve; });
+      await page.route('**/auth/v1/**', route => route.fulfill({ json: {
+        access_token: 'test-token', refresh_token: 'test-refresh', expires_in: 3600, token_type: 'bearer',
+        user: { id: 'adventure-start-test', aud: 'authenticated', created_at: new Date().toISOString(), app_metadata: {}, user_metadata: {}, is_anonymous: true },
+      } }));
       await page.route('**/api/game', async route => {
         if (route.request().method() === 'POST') {
-          actions.push(route.request().postDataJSON());
+          const action = route.request().postDataJSON();
+          actions.push(action);
+          if (action.action === 'start') {
+            state.battle = {
+              id: 'test-battle', expeditionId: action.expeditionId, chapter: action.chapter,
+              status: 'active', total: 10, correct: 0, playerHp: 500, playerMaxHp: 500,
+              enemyHp: 100, enemyMaxHp: 100, enemiesDefeated: 0, finished: false,
+              goldReward: 0, gemsReward: 0, xpReward: 0, pendingGold: 0, pendingGems: 0,
+              answers: [], question: null, feedback: null,
+            };
+            state.lastAdventure = { expeditionId: action.expeditionId, chapter: action.chapter };
+          }
           return route.fulfill({ json: state });
         }
         reads++;
@@ -29,13 +44,14 @@ const state = {
         return route.fulfill({ json: state });
       });
       await page.goto(process.env.APP_URL || 'http://localhost:5173', { waitUntil: 'domcontentloaded' });
+      await page.getByRole('button', { name: 'Continue as guest', exact: true }).click();
       if (scenario === 'backend starts after page') await page.getByRole('button', { name: 'Continue', exact: true }).click();
       await page.getByRole('button', { name: 'Continue Adventure', exact: true }).click();
       await page.getByRole('button', { name: 'Start Adventure', exact: true }).waitFor();
       if (scenario === 'late response') {
         const response = page.waitForResponse(response => response.url().endsWith('/api/game'));
         release(); await response;
-        await page.getByText('Server Chapter 2', { exact: false }).first().waitFor();
+        await page.getByText('Chapter 2: Server Chapter 2', { exact: true }).waitFor();
       }
       await page.getByRole('button', { name: 'Start Adventure', exact: true }).click();
       await page.getByTestId('fight-page').waitFor();

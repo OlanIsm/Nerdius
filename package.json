@@ -17,6 +17,7 @@
     "test:web": "node scripts/verify-game-entry.cjs",
     "test:summon": "node scripts/verify-summon.cjs",
     "test:forge": "node scripts/verify-forging.cjs",
+    "test:settings": "node scripts/verify-settings.cjs",
     "test:learning": "node --env-file=backend/.env scripts/verify-learning.cjs"
   },
   "devDependencies": {

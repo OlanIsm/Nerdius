@@ -4,7 +4,7 @@ const { chromium } = require('@playwright/test');
 
 (async () => {
   const { initialGame } = await import('../backend/src/modules/game/state.ts');
-  const { gameSnapshot } = await import('../backend/src/modules/game/index.ts');
+  const { gameSnapshot } = await import('../backend/src/modules/game/snapshot.ts');
   const state = initialGame();
   const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe' });
   try {
@@ -26,6 +26,7 @@ const { chromium } = require('@playwright/test');
       return route.fulfill({ json: gameSnapshot(state) });
     });
     await page.goto(process.env.APP_URL || 'http://localhost:5173', { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'Continue as guest', exact: true }).click();
     const file = { name: 'A very long machine learning study material filename for testing.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.7 test') };
     await page.getByLabel('Study file', { exact: true }).setInputFiles(file);
     await page.getByRole('button', { name: 'Forge Adventure', exact: true }).click();
