@@ -1,0 +1,95 @@
+{
+  "frames": {
+    "1000234752": {
+      "frame": {
+        "x": 1,
+        "y": 1,
+        "w": 768,
+        "h": 768
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 768,
+        "h": 768
+      },
+      "sourceSize": {
+        "w": 768,
+        "h": 768
+      }
+    },
+    "1000234753": {
+      "frame": {
+        "x": 770,
+        "y": 1,
+        "w": 768,
+        "h": 768
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 768,
+        "h": 768
+      },
+      "sourceSize": {
+        "w": 768,
+        "h": 768
+      }
+    },
+    "1000234754": {
+      "frame": {
+        "x": 1539,
+        "y": 1,
+        "w": 768,
+        "h": 768
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 768,
+        "h": 768
+      },
+      "sourceSize": {
+        "w": 768,
+        "h": 768
+      }
+    },
+    "1000234755": {
+      "frame": {
+        "x": 2308,
+        "y": 1,
+        "w": 768,
+        "h": 768
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 768,
+        "h": 768
+      },
+      "sourceSize": {
+        "w": 768,
+        "h": 768
+      }
+    }
+  },
+  "meta": {
+    "app": "Sprite Sheet Maker",
+    "version": "1.0",
+    "image": "spritesheet.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 3077,
+      "h": 770
+    },
+    "scale": "1"
+  }
+}

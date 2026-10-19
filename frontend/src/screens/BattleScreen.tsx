@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { art, icons } from "../assets";
+import { art, characterProfiles, icons } from "../assets";
 import { Button, Icon, useReducedMotion } from "../components/GameUI";
 import type { WorldControls } from "../game/PhaserWorld";
 import { GameState, type GamePhase } from "../game/types";
@@ -7,9 +7,9 @@ import type { ScreenProps } from "../types";
 import type { BattleView } from "../modules/game/types";
 import { BattleQuiz } from "../components/BattleQuiz";
 import {
-  playAttackSound,
   playCorrectAnswerSound,
   playDamageSound,
+  playFireGustSound,
   playWinSound,
   playWrongAnswerSound,
   setOverworldSound,
@@ -19,7 +19,7 @@ import { playDoorCloseSound, playDoorOpenSound } from "../components/doorAudio";
 const status: Record<GamePhase, string> = {
   walking: "Walking east",
   encounterStarting: "Something stirs ahead…",
-  encounter: "Forest encounter",
+  encounter: "Savannah encounter",
   encounterComplete: "Path cleared!",
   bossEncounter: "The grove guardian",
   result: "Trail complete!",
@@ -51,6 +51,7 @@ export function BattleScreen({
   const [doorsLoaded, setDoorsLoaded] = useState(() => new Set<number>());
   const [minimumElapsed, setMinimumElapsed] = useState(false);
   const [world, setWorld] = useState<WorldControls>();
+  const [stageElement, setStageElement] = useState<HTMLDivElement | null>(null);
   const [WorldRenderer, setWorldRenderer] =
     useState<typeof import("../game/PhaserWorld").PhaserWorld>();
   const [loadError, setLoadError] = useState(false);
@@ -58,6 +59,8 @@ export function BattleScreen({
   const [, render] = useState(0);
   const [menu, setMenu] = useState<"pause" | "restart" | "exit" | null>(null);
   const [answering, setAnswering] = useState(false);
+  const [attackInProgress, setAttackInProgress] = useState(false);
+  const [streak, setStreak] = useState(0);
   const [acknowledged, setAcknowledged] = useState<string>();
   const menuDialog = useRef<HTMLDialogElement>(null);
   const [saving, setSaving] = useState(false);
@@ -66,9 +69,9 @@ export function BattleScreen({
   const submittedAnswerKey = useRef<string | undefined>(undefined);
   const lastFeedbackKey = useRef<string | undefined>(undefined);
   const loadingStarted = useRef(0);
-  const previousHp = useRef<{ battleId: string; hp: number } | undefined>(
-    undefined,
-  );
+  const previousHp = useRef<
+    { battleId: string; playerHp: number; enemyHp: number } | undefined
+  >(undefined);
   const reportReady = useCallback(
     (controls: WorldControls) => setWorld(controls),
     [],
@@ -143,10 +146,27 @@ export function BattleScreen({
   }, [phase, loadError, menu]);
   const battleId = battle?.id;
   const playerHp = battle?.playerHp;
+  const enemyHp = battle?.enemyHp;
   const feedback = battle?.feedback;
   const feedbackKey = feedback && battleId
     ? `${battleId}:${feedback.questionId}`
     : undefined;
+  const game = world?.model;
+  const gameState = game?.state;
+  const inEncounter =
+    gameState === GameState.encounter || gameState === GameState.bossEncounter;
+  const showingEnemyDefeat =
+    attackInProgress &&
+    feedback?.correct === true &&
+    battle !== null &&
+    battle.correct > 0 &&
+    battle.correct % 2 === 0;
+  useEffect(() => {
+    setStreak(0);
+    setAttackInProgress(false);
+    previousHp.current = undefined;
+    lastFeedbackKey.current = undefined;
+  }, [battleId]);
   useEffect(() => {
     if (!feedbackKey) {
       lastFeedbackKey.current = undefined;
@@ -156,29 +176,56 @@ export function BattleScreen({
     lastFeedbackKey.current = feedbackKey;
     if (submittedAnswerKey.current !== feedbackKey) return;
     submittedAnswerKey.current = undefined;
-    if (feedback?.correct) {
-      playAttackSound();
-      playCorrectAnswerSound();
-    }
-    else playWrongAnswerSound();
-  }, [feedback?.correct, feedbackKey]);
-  useEffect(() => {
-    if (battleId === undefined || playerHp === undefined) return;
+    if (!battle || !world || !inEncounter || !feedback) return;
     const previous = previousHp.current;
-    if (
-      previous?.battleId === battleId &&
-      playerHp < previous.hp
-    ) {
-      playDamageSound();
+    const sameBattle = previous?.battleId === battle.id;
+    const enemyDamage = sameBattle
+      ? Math.max(0, previous.enemyHp - battle.enemyHp)
+      : 0;
+    const playerDamage = sameBattle
+      ? Math.max(0, previous.playerHp - battle.playerHp)
+      : 0;
+    previousHp.current = {
+      battleId: battle.id,
+      playerHp: battle.playerHp,
+      enemyHp: battle.enemyHp,
+    };
+    setAttackInProgress(true);
+    if (feedback.correct) {
+      world.attackPlayer(
+        enemyDamage || Math.min(50, battle.enemyMaxHp),
+        battle.correct > 0 && battle.correct % 2 === 0,
+        () => {
+          setAttackInProgress(false);
+          const nextStreak = streak + 1;
+          setStreak(nextStreak);
+          if (nextStreak > 5) playFireGustSound();
+          playCorrectAnswerSound();
+        },
+      );
+    } else {
+      setStreak(0);
+      playWrongAnswerSound();
+      if (playerDamage > 0) playDamageSound();
+      world.attackEnemy(
+        playerDamage || Math.min(50, battle.playerMaxHp),
+        () => setAttackInProgress(false),
+      );
     }
-    previousHp.current = { battleId, hp: playerHp };
-  }, [battleId, playerHp]);
+  }, [battle, feedback, feedbackKey, inEncounter, streak, world]);
+  useEffect(() => {
+    if (battleId === undefined || playerHp === undefined || enemyHp === undefined) return;
+    const previous = previousHp.current;
+    if (previous?.battleId !== battleId) {
+      previousHp.current = { battleId, playerHp, enemyHp };
+    } else {
+      previousHp.current = { ...previous, playerHp, enemyHp };
+    }
+  }, [battleId, enemyHp, playerHp]);
   useEffect(() => {
     if (menu) menuDialog.current?.showModal();
     else menuDialog.current?.close();
   }, [menu]);
-  const game = world?.model;
-  const gameState = game?.state;
   useEffect(() => {
     if (gameState === GameState.result && !recorded.current) {
       recorded.current = true;
@@ -195,13 +242,6 @@ export function BattleScreen({
         .finally(() => setSaving(false));
     }
   }, [gameState, onComplete]);
-  const inEncounter =
-    gameState === GameState.encounter || gameState === GameState.bossEncounter;
-  useEffect(() => {
-    if (world && inEncounter && battle?.feedback?.correct && battle.correct % 2 === 0 && battle.feedback.questionId !== acknowledged) {
-      world.act(() => world.model.defeatEnemy());
-    }
-  }, [world, inEncounter, battle, acknowledged]);
   function retry() {
     setWorld(undefined);
     setLoadError(false);
@@ -219,7 +259,11 @@ export function BattleScreen({
       data-testid="fight-page"
       data-loading-started={loadingStarted.current}
     >
-      <div className="battle-stage" data-testid="combat-visual">
+      <div
+        ref={setStageElement}
+        className="battle-stage"
+        data-testid="combat-visual"
+      >
         {phase !== "closing" && WorldRenderer && battle && (
           <WorldRenderer
             key={attempt}
@@ -238,11 +282,30 @@ export function BattleScreen({
                   Chapter {battle.chapter} · {battle.total} questions
                 </p>
               </div>
+              {streak > 0 && (
+                <div
+                  key={streak}
+                  className="battle-streak"
+                  data-testid="battle-streak"
+                  aria-label={`${streak} correct answers in a row`}
+                  style={{
+                    boxShadow: `0 0 ${12 + Math.min(streak, 10) * 3}px rgba(255, 160, 32, ${Math.min(0.55, 0.3 + streak * 0.025)})`,
+                  }}
+                >
+                  <img
+                    src={icons.fire}
+                    alt=""
+                    style={{
+                      filter: `drop-shadow(0 0 ${4 + Math.min(streak, 10) * 2}px #ff8a1a) brightness(${1 + Math.min(streak, 10) * 0.04})`,
+                    }}
+                  />
+                  <span>{streak}</span>
+                </div>
+              )}
               <button type="button" aria-label="Battle menu" aria-haspopup="dialog" disabled={answering || saving} onClick={() => setMenu("pause")} className="battle-menu-toggle">
                 <span aria-hidden="true">&#9776;</span>
               </button>
             </header>
-            {inEncounter && !game.enemyDefeated && <HealthBar enemy hp={battle.enemyHp} max={battle.enemyMaxHp} label={`Enemy ${battle.enemiesDefeated + (battle.enemyHp > 0 ? 1 : 0)}`} />}
             {!inEncounter && game.state !== GameState.result && (
               <div className="east"><Icon name="arrow-right" size={18} color="#fff4c8" />EAST</div>
             )}
@@ -251,7 +314,27 @@ export function BattleScreen({
       </div>
       {world && game && battle && (
         <div className="battle-lower" aria-hidden={phase !== "ready"} inert={phase !== "ready"}>
-          <HealthBar hp={battle.playerHp} max={battle.playerMaxHp} label="Player health" />
+          <div className="battle-health-row">
+            <HealthBar
+              hp={battle.playerHp}
+              max={battle.playerMaxHp}
+              label="Player health"
+              profile={characterProfiles.olan}
+            />
+            {inEncounter && !game.enemyDefeated && (
+              <HealthBar
+                enemy
+                hp={showingEnemyDefeat ? 0 : battle.enemyHp}
+                max={battle.enemyMaxHp}
+                label={`Enemy ${battle.enemiesDefeated + (battle.enemyHp > 0 ? 1 : 0)}`}
+                profile={characterProfiles[(game.encounter?.name ?? "Nerdius") === "Hannah"
+                  ? "hannah"
+                  : (game.encounter?.name ?? "Nerdius") === "Snarger"
+                    ? "snarger"
+                    : "nerdius"]}
+              />
+            )}
+          </div>
         <footer
           className="battle-footer"
           data-testid="combat-quiz"
@@ -289,6 +372,9 @@ export function BattleScreen({
             <BattleQuiz
               battle={battle}
               acknowledged={acknowledged}
+              speaker={game.encounter?.name ?? "Nerdius"}
+              attackInProgress={attackInProgress}
+              speechBubbleTarget={stageElement}
               onAcknowledge={setAcknowledged}
               tutorial={tutorial}
               onAnswer={async (questionId, selectedIndex) => {
@@ -426,10 +512,25 @@ export function BattleScreen({
 }
 
 const exitStyle = { backgroundColor: "#b9322c", color: "#fff8e7", borderColor: "#76241e" };
-function HealthBar({ hp, max, label, enemy = false }: { hp: number; max: number; label: string; enemy?: boolean }) {
+function HealthBar({
+  hp,
+  max,
+  label,
+  enemy = false,
+  profile,
+}: {
+  hp: number;
+  max: number;
+  label: string;
+  enemy?: boolean;
+  profile: string;
+}) {
   const id = enemy ? "enemy-hp" : "player-hp";
-  return <section className={`battle-health ${enemy ? "combat-hud" : "player-health"}`} aria-label={enemy ? "Enemy health" : "Player health"} style={enemy ? undefined : { backgroundImage: `url("${art.navPlank}")` }}>
-    {enemy && <label htmlFor={id}><span>{label}</span><strong>{hp} / {max} HP</strong></label>}
-    <div className="health-bar"><img className="health-heart" src={icons.heart} alt="" /><div className="health-frame"><progress id={id} aria-label={label} max={max} value={hp} /></div></div>
+  return <section className={`battle-health ${enemy ? "combat-hud" : "player-health"}`} aria-label={label}>
+    <div className={`health-bar ${enemy ? "enemy-health-bar" : ""}`}>
+      {!enemy && <img className="health-profile" src={profile} alt="" />}
+      <div className="health-frame"><progress id={id} aria-label={label} max={max} value={hp} /></div>
+      {enemy && <img className="health-profile" src={profile} alt="" />}
+    </div>
   </section>;
 }

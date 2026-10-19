@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import type { FantasyGame } from "./FantasyGame";
 import { GameState } from "./types";
 import { WORLD } from "./level";
+import { playCoinPickupSound } from "../components/gameAudio";
 
 // Decorative pieces represent the server's 100 gold / 50 gems per defeated enemy.
 export class BattleLoot {
@@ -69,7 +70,12 @@ export class BattleLoot {
         .setAlpha(reduced ? 1 - pull : 1);
       piece.shadow.setPosition(landX * scale, (ground + 7) * scale)
         .setDisplaySize(14 * scale, 4 * scale).setAlpha((1 - pull) * .22);
-      if (pull === 1) { piece.image.destroy(); piece.shadow.destroy(); this.collected++; }
+      if (pull === 1) {
+        if (i % 3 !== 0) playCoinPickupSound();
+        piece.image.destroy();
+        piece.shadow.destroy();
+        this.collected++;
+      }
     });
     return { count: this.pieces.length - this.collected, phase: this.pieces.length === 0 || this.collected === this.pieces.length ? "empty" : this.walking > 1.1 ? "collecting" : this.age < 1 ? "burst" : "ground" };
   }

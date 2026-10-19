@@ -4,7 +4,6 @@ const audioFiles = import.meta.glob<string>(
     "../../assets/audio/Sign chain click.m4a",
     "../../assets/audio/login signup music.m4a",
     "../../assets/audio/winSound.m4a",
-    "../../assets/audio/olan attack.m4a",
     "../../assets/audio/wood2.m4a",
     "../../assets/audio/pop.mp3",
   ],
@@ -36,6 +35,18 @@ const correctAnswerUrl = new URL(
   "../../assets/audio/ding.m4a",
   import.meta.url,
 ).href;
+const damageHitUrl = new URL(
+  "../../assets/audio/damage-hit.mp3",
+  import.meta.url,
+).href;
+const impactThudUrl = new URL(
+  "../../assets/audio/impact-thud.mp3",
+  import.meta.url,
+).href;
+const fireGustUrl = new URL(
+  "../../assets/audio/fire-gust.m4a",
+  import.meta.url,
+).href;
 const wrongAnswerUrl = new URL(
   "../../assets/audio/wronganswer.m4a",
   import.meta.url,
@@ -47,7 +58,31 @@ const treasureUrl = new URL(
 const authTextBoxUrl = audioAsset("Sign chain click.m4a", "wood2.m4a");
 const authMusicUrl = audioAsset("login signup music.m4a");
 const winUrl = audioAsset("winSound.m4a");
-const attackUrl = audioAsset("olan attack.m4a");
+const characterAttackUrls = {
+  olan: new URL(
+    "../../assets/audio/character-attack-sfx/olan-attack-sfx.m4a",
+    import.meta.url,
+  ).href,
+  hannah: new URL(
+    "../../assets/audio/character-attack-sfx/hannah-attack.m4a",
+    import.meta.url,
+  ).href,
+};
+const characterVoiceUrls = {
+  hannah: new URL(
+    "../../assets/audio/character-voices/hannah-voice-clip.m4a",
+    import.meta.url,
+  ).href,
+  snarger: new URL(
+    "../../assets/audio/character-voices/snarger-voice-clip.m4a",
+    import.meta.url,
+  ).href,
+  nerdius: new URL(
+    "../../assets/audio/character-voices/nerd-voice-clip.m4a",
+    import.meta.url,
+  ).href,
+};
+export type VoiceCharacter = keyof typeof characterVoiceUrls;
 
 const overworldAudio = new Audio(chirpingUrl);
 overworldAudio.preload = "none";
@@ -102,8 +137,42 @@ export function playWinSound() {
   if (winUrl) playOneShot(winUrl, treasureUrl);
 }
 
-export function playAttackSound() {
-  if (attackUrl) playOneShot(attackUrl, hitMarkerUrl);
+export function playCharacterAttackSound(
+  character: keyof typeof characterAttackUrls,
+  delayMs = 0,
+) {
+  const play = () => playOneShot(characterAttackUrls[character]);
+  if (delayMs <= 0) {
+    play();
+    return;
+  }
+  window.setTimeout(play, delayMs);
+}
+
+export function startCharacterVoice(character: VoiceCharacter) {
+  const voice = new Audio(characterVoiceUrls[character]);
+  voice.preload = "auto";
+  voice.loop = true;
+  voice.preservesPitch = false;
+  let stopped = false;
+  let previousTime = 0;
+  const play = () => {
+    if (stopped) return;
+    voice.playbackRate = 0.86 + Math.random() * 0.3;
+    void voice.play().catch(reportPlaybackError);
+  };
+  const varyPitchAtLoop = () => {
+    if (voice.currentTime < previousTime) play();
+    previousTime = voice.currentTime;
+  };
+  voice.addEventListener("timeupdate", varyPitchAtLoop);
+  play();
+  return () => {
+    stopped = true;
+    voice.pause();
+    voice.currentTime = 0;
+    voice.removeEventListener("timeupdate", varyPitchAtLoop);
+  };
 }
 
 export function setAuthMusic(active: boolean) {
@@ -136,6 +205,22 @@ export function setWalkingSound(active: boolean) {
 
 export function playCorrectAnswerSound() {
   playOneShot(correctAnswerUrl);
+}
+
+export function playCoinPickupSound() {
+  playOneShot(correctAnswerUrl);
+}
+
+export function playDamageHitSound() {
+  playOneShot(damageHitUrl);
+}
+
+export function playImpactThudSound() {
+  playOneShot(impactThudUrl);
+}
+
+export function playFireGustSound() {
+  playOneShot(fireGustUrl);
 }
 
 export function playWrongAnswerSound() {

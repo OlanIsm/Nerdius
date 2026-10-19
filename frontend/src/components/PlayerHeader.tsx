@@ -54,7 +54,7 @@ export function PlayerHeader({
         />
         <div style={s.level} className="stack">
           <span style={s.levelText} className="text">
-            Lv. 5
+            Lv.5
           </span>
         </div>
       </button>

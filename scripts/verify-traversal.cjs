@@ -8,6 +8,7 @@ require.extensions[".ts"] = (module, filename) => module._compile(ts.transpileMo
 }).outputText, filename);
 const { FantasyGame } = require("../frontend/src/game/FantasyGame.ts");
 const { WORLD } = require("../frontend/src/game/level.ts");
+const SAVANNAH_ENEMIES = new Set(["Hannah", "Snarger", "Nerdius"]);
 
 
 function advance(game, seconds) {
@@ -39,6 +40,7 @@ for (let frame = 0; frame < 30000 && game.state !== "result"; frame++) {
   }
   if (game.state === "encounter" || game.state === "bossEncounter") {
     counts.push(game.encounter.count);
+    assert(SAVANNAH_ENEMIES.has(game.encounter.name), "encounter uses a savannah monster");
     stoppedAt = game.distance;
     const positions = game.chunks.pool.map((chunk) => chunk.y);
     advance(game, 1);

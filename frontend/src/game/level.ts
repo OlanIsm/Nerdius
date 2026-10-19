@@ -15,6 +15,8 @@ export const WORLD = {
   maxDelta: 0.05,
 };
 
+export const SAVANNAH_ENEMIES = ["Hannah", "Snarger", "Nerdius"] as const;
+
 export const level: readonly { type: ChunkType; enemyCount?: number }[] = [
   { type: "forestStraight" }, { type: "forestVariant" },
   { type: "encounterArena", enemyCount: 1 }, { type: "forestStraight" },
@@ -53,8 +55,8 @@ export const chunks: Record<ChunkType, ChunkDefinition> = {
   },
   river: { type: "river", label: "Riverbank Walk", props: variant.filter((prop) => prop.x > 70) },
   ruins: { type: "ruins", label: "Old Scholar Ruins", props: [...arena, { kind: "ruins", x: 72, y: 238 }, { kind: "ruins", x: 285, y: 244 }] },
-  encounterArena: { type: "encounterArena", label: "Sunlit Clearing", props: arena, triggerY: 320, spawn: { count: 1, boss: false, name: "Forest Imps" } },
-  bossArena: { type: "bossArena", label: "Guardian's Grove", props: [...arena, { kind: "ruins", x: 75, y: 185 }, { kind: "ruins", x: 288, y: 185 }], triggerY: 320, spawn: { count: 1, boss: true, name: "Grove Guardian" } },
+  encounterArena: { type: "encounterArena", label: "Sunlit Clearing", props: arena, triggerY: 320, spawn: { count: 1, boss: false } },
+  bossArena: { type: "bossArena", label: "Guardian's Grove", props: [...arena, { kind: "ruins", x: 75, y: 185 }, { kind: "ruins", x: 288, y: 185 }], triggerY: 320, spawn: { count: 1, boss: true } },
 };
 
 export const encounters = level.flatMap((step) => {

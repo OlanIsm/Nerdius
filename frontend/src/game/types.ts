@@ -9,6 +9,7 @@ export const GameState = {
 export type GamePhase = (typeof GameState)[keyof typeof GameState];
 
 export type ChunkType = "forestStraight" | "forestVariant" | "bridge" | "river" | "ruins" | "encounterArena" | "bossArena";
+export type SavannahEnemy = "Hannah" | "Snarger" | "Nerdius";
 export type PropKind = "tree" | "bush" | "rock" | "flower" | "ruins" | "signpost";
 export type PropPlacement = { kind: PropKind; x: number; y: number; scale?: number };
 export type ChunkDefinition = {
@@ -16,7 +17,7 @@ export type ChunkDefinition = {
   label: string;
   props: readonly PropPlacement[];
   triggerY?: number;
-  spawn?: { count: number; boss: boolean; name: string };
+  spawn?: { count: number; boss: boolean };
 };
 export type Chunk = {
   id: number;
@@ -30,4 +31,4 @@ export type Chunk = {
   definition: ChunkDefinition;
   spawn?: ChunkDefinition["spawn"];
 };
-export type ActiveEncounter = { count: number; boss: boolean; name: string; debug: boolean };
+export type ActiveEncounter = { count: number; boss: boolean; name: SavannahEnemy; debug: boolean };

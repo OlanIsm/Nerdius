@@ -1,5 +1,5 @@
 import { ChunkManager } from "./ChunkManager";
-import { encounters, WORLD } from "./level";
+import { encounters, SAVANNAH_ENEMIES, WORLD } from "./level";
 import { GameState, type GamePhase, type ActiveEncounter } from "./types";
 
 const transitions: Record<GamePhase, readonly GamePhase[]> = {
@@ -63,10 +63,12 @@ export class FantasyGame {
     this.revision++;
   }
 
-  private beginEncounter(spawn?: Omit<ActiveEncounter, "debug">) {
+  private beginEncounter(spawn?: Pick<ActiveEncounter, "count" | "boss">) {
+    const name =
+      SAVANNAH_ENEMIES[Math.floor(Math.random() * SAVANNAH_ENEMIES.length)];
     this.encounter = spawn
-      ? { ...spawn, count: 1, debug: false }
-      : { count: 1, boss: false, name: "Forest Imp", debug: true };
+      ? { ...spawn, name, count: 1, debug: false }
+      : { count: 1, boss: false, name, debug: true };
     this.debugStop = null;
     this.enemyDefeated = false;
     this.transition(GameState.encounterStarting);

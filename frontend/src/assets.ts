@@ -52,6 +52,26 @@ export const icons = {
   armory: new URL("../assets/icon/bag.webp", import.meta.url).href,
   coins: new URL("../assets/icon/coins.webp", import.meta.url).href,
   gems: new URL("../assets/icon/Gem.webp", import.meta.url).href,
+  fire: new URL("../assets/icon/fire.png", import.meta.url).href,
+};
+
+export const characterProfiles = {
+  hannah: new URL(
+    "../assets/character/profiles/Hannah profile.png",
+    import.meta.url,
+  ).href,
+  snarger: new URL(
+    "../assets/character/profiles/Snarger profile.png",
+    import.meta.url,
+  ).href,
+  nerdius: new URL(
+    "../assets/character/profiles/Nerd profile.png",
+    import.meta.url,
+  ).href,
+  olan: new URL(
+    "../assets/character/profiles/Olan profile.png",
+    import.meta.url,
+  ).href,
 };
 
 export const mapArt = {

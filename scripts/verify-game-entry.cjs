@@ -214,9 +214,22 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
       assert.notEqual(size.overflow, 'auto');
       const bounds = await page.getByRole('button', { name: buttonLabel, exact: true }).boundingBox();
       assert(bounds.y >= 0 && bounds.y + bounds.height <= page.viewportSize().height, 'Action button stays in viewport');
-      const hearts = page.locator('.health-heart');
-      assert.equal(await hearts.count(), await page.locator('#enemy-hp').count() + 1);
-      assert(await hearts.first().evaluate(img => img.complete && img.naturalWidth > 0 && img.src.includes('Heart')), 'HP uses loaded Heart asset');
+      const profiles = page.locator('.health-profile');
+      assert.equal(await profiles.count(), await page.locator('#enemy-hp').count() + 1);
+      await page.waitForFunction(() => {
+        const playerProfile = document.querySelector('.player-health .health-profile');
+        return playerProfile instanceof HTMLImageElement &&
+          playerProfile.complete &&
+          playerProfile.naturalWidth > 0;
+      });
+      assert(
+        await profiles.first().evaluate(img =>
+          img.complete &&
+          img.naturalWidth > 0 &&
+          decodeURIComponent(new URL(img.src).pathname).toLowerCase().includes('olan profile'),
+        ),
+        'Player health uses loaded Olan portrait',
+      );
     }
     for (let encounter = 0; encounter < 5; encounter++) {
       await page.getByRole('button', { name: 'Submit answer', exact: true }).waitFor();
@@ -229,9 +242,14 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
       assert(hpPanel.y >= visual.y + visual.height - 1, 'Player HP is below the visual');
       assert(hpPanel.y + hpPanel.height <= quiz.y + 1, 'Player HP has a separate panel above quiz');
       assert.equal(await page.getByTestId('combat-quiz').locator('#player-hp').count(), 0, 'HP is outside quiz DOM');
-      assert(await page.locator('.player-health').evaluate(element => getComputedStyle(element).backgroundImage.includes('Plank')), 'HP panel reuses navbar plank asset');
-      assert((await page.locator('#enemy-hp').boundingBox()).y < quiz.y, 'Enemy HP belongs to the visual row');
-      assert.equal(await world.getAttribute('data-hero-texture'), 'scholar-idle', 'encounters use the standing texture instead of a frozen walk frame');
+      assert(
+        Math.abs(
+          (await page.locator('.player-health').boundingBox()).y -
+            (await page.locator('.combat-hud').boundingBox()).y,
+        ) < 1,
+        'Player and enemy health bars share the same row above the quiz',
+      );
+      assert.equal(await world.getAttribute('data-hero-texture'), 'olan-idle', 'encounters use Olan idle animation');
       assert.deepEqual(
         JSON.parse(await world.getAttribute('data-enemy-position')),
         { x: 244, y: 0.71 },
@@ -241,11 +259,49 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
       assert.equal(await world.getAttribute('data-enemy-depth'), await world.getAttribute('data-actor-depth'), 'enemy renders behind foremost layer');
       const idleFrame = await world.getAttribute('data-walk-frame');
       await page.waitForTimeout(150);
-      assert.equal(await world.getAttribute('data-walk-frame'), idleFrame, 'idle pose stays still during encounters');
+      assert.notEqual(await world.getAttribute('data-walk-frame'), idleFrame, 'idle animation advances during encounters');
+      const currentQuestion = state.expeditions[0].regions[0].questionBank[state.battle.answers.length];
+      await page.waitForFunction(
+        prompt => document.querySelector('.battle-quiz legend')?.textContent === prompt,
+        currentQuestion.prompt,
+      );
+      assert(
+        await page.locator('.battle-question-text').evaluate(element => getComputedStyle(element).fontSize === '20px'),
+        'speech bubble question text stays 20px',
+      );
+      assert.equal(
+        await page.locator('.battle-question-bubble').evaluate(element => getComputedStyle(element).borderTopWidth),
+        '2px',
+        'speech bubble uses the requested thin outline',
+      );
+      await page.locator('.battle-question-bubble img').waitFor();
+      const healthRow = page.locator('.battle-health-row');
+      const playerHealthBounds = await page.locator('.player-health').boundingBox();
+      const enemyHealthBounds = await page.locator('.combat-hud').boundingBox();
+      assert(
+        Math.abs(playerHealthBounds.y - enemyHealthBounds.y) < 1,
+        'Player and enemy health bars are aligned on the same row',
+      );
+      assert(
+        Math.abs(playerHealthBounds.x) < 1 &&
+          Math.abs(playerHealthBounds.width - page.viewportSize().width / 2) < 2 &&
+          Math.abs(enemyHealthBounds.x + enemyHealthBounds.width - page.viewportSize().width) < 1,
+        'Health bars each use half the screen and anchor to opposite sides',
+      );
+      assert.equal(await healthRow.locator('.health-profile').count(), 2);
+      assert(
+        await page.evaluate(() => window.__playedSounds.some(src => /(hannah|snarger|nerd)-voice-clip/i.test(src))),
+        'the encounter character reads the typed question',
+      );
       if (encounter === 0) {
         for (const viewport of [{ width: 360, height: 640 }, { width: 390, height: 844 }, { width: 530, height: 900 }, { width: 1280, height: 900 }]) {
           await page.setViewportSize(viewport);
           await assertStaticQuiz('Submit answer');
+          assert.equal(
+            await page.locator('.battle-question-text').evaluate(element => getComputedStyle(element).fontSize),
+            '20px',
+            `speech bubble font remains fixed at ${viewport.width}px viewport width`,
+          );
           await page.screenshot({ path: `test-results/static-quiz-${viewport.width}.png` });
         }
         await page.setViewportSize({ width: 430, height: 932 });
@@ -253,6 +309,9 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
       }
       const bank = state.expeditions[0].regions[0].questionBank;
       const target = (encounter + 1) * 2;
+      const dingsBeforeDrops = encounter === 0
+        ? await page.evaluate(() => window.__playedSounds.filter(src => src.endsWith('/audio/ding.m4a')).length)
+        : 0;
       while (state.battle.answers.length < target) {
         const question = bank[state.battle.answers.length];
         await page.setViewportSize({ width: 360, height: 640 });
@@ -261,11 +320,30 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
         await page.getByRole('radio', { name: question.options[question.answerIndex], exact: true }).check();
         await page.getByRole('button', { name: 'Submit answer', exact: true }).click();
         await page.getByText('Correct!', { exact: true }).waitFor();
+        if (state.battle.correct > 0 && state.battle.correct % 2 === 0) {
+          await page.waitForFunction(() => {
+            const health = document.querySelector('#enemy-hp');
+            return health && health.value === 0;
+          });
+          assert(
+            await world.getAttribute('data-enemies') === '1',
+            'Enemy bar reaches zero while the defeated enemy is still animating',
+          );
+        }
+        if (encounter === 0 && state.battle.answers.length === 1) {
+          await page.waitForFunction(() => document.querySelector('[data-testid="phaser-world"]').dataset.heroTexture === 'olan-attack-live');
+          await page.screenshot({ path: 'test-results/olan-attack.png' });
+        }
         assert.equal(await page.locator('.feedback-correction').count(), 0);
         await page.setViewportSize({ width: 360, height: 640 });
         await assertStaticQuiz('Next');
         await page.setViewportSize({ width: 430, height: 932 });
         if (encounter === 0 && state.battle.answers.length === 1) {
+          await page.waitForFunction(() => document.querySelector('[data-testid="battle-streak"]'));
+          assert(
+            await page.evaluate(() => window.__playedSounds.some(src => src.includes('olan-attack-sfx'))),
+            'Olan attack sound starts with his attack animation',
+          );
           await page.screenshot({ path: 'test-results/combat-feedback-mobile.png' });
           await page.setViewportSize({ width: 1280, height: 900 });
           await page.screenshot({ path: 'test-results/combat-feedback-desktop.png' });
@@ -276,6 +354,10 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
         }
         if (state.battle.answers.length % 2 === 0) {
           await page.waitForFunction(() => document.querySelector('[data-testid="phaser-world"]').dataset.enemies === '0');
+          assert(
+            await page.evaluate(() => window.__playedSounds.some(src => src.endsWith('/audio/impact-thud.mp3'))),
+            'Enemy defeat screen shake plays the impact thud',
+          );
           assert.equal(await page.locator('#enemy-hp').count(), 0, 'Defeated enemy has no HP bar');
           await page.waitForFunction(() => document.querySelector('[data-testid="phaser-world"]').dataset.lootPhase === 'ground');
           if (encounter === 0) {
@@ -291,6 +373,12 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
           }
         }
         await page.getByRole('button', { name: 'Next', exact: true }).click();
+        if (encounter === 0 && state.battle.answers.length === 1) {
+          assert(
+            await page.evaluate(() => window.__playedSounds.some(src => src.endsWith('/audio/damage-hit.mp3'))),
+            'Enemy flash plays the damage-hit sound',
+          );
+        }
       }
       await page.waitForFunction(() => document.querySelector('[data-testid="phaser-world"]').dataset.phase === 'walking');
       assert.equal(await page.locator('#enemy-hp').count(), 0, 'No enemy HP while walking');
@@ -299,10 +387,20 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
       if (encounter === 0) await page.screenshot({ path: 'test-results/combat-loot-collect-mobile.png' });
       await page.waitForFunction(() => document.querySelector('[data-testid="phaser-world"]').dataset.lootCount === '0');
       assert.equal(state.gold, 1450, 'Drops do not enter balance before complete');
+      if (encounter === 0) {
+        assert(
+          await page.evaluate(count => window.__playedSounds.filter(src => src.endsWith('/audio/ding.m4a')).length >= count + 5, dingsBeforeDrops),
+          'Each collected coin plays a ding',
+        );
+      }
 
     }
     await page.getByTestId('fight-status').getByText('Chapter cleared!', { exact: true }).waitFor();
-    assert.equal(await world.getAttribute('data-hero-texture'), 'scholar-idle', 'result uses standing pose');
+    assert(
+      await page.evaluate(() => window.__playedSounds.some(src => src.endsWith('/audio/fire-gust.m4a'))),
+      'A streak above five plays the fire gust',
+    );
+    assert.equal(await world.getAttribute('data-hero-texture'), 'olan-idle', 'result uses Olan idle animation');
     assert.equal(actions.filter(action => action.action === 'complete').length, 1, 'completion submitted once');
     assert.equal(state.gold, 2400);
     assert.equal(state.gems, gemsBeforeBattle + 250);
