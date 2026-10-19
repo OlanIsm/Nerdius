@@ -44,6 +44,14 @@
 .settings-switch-row input:checked { background: #3c705f; }
 .settings-switch-row input:checked::before { transform: translateX(18px); }
 .settings-switch-row input:focus-visible { outline: 3px solid #3c705f; outline-offset: 4px; }
+.settings-slider-row { display: grid; gap: 12px; padding: 18px 0; }
+.settings-slider-row > span { display: flex; justify-content: space-between; gap: 16px; }
+.settings-slider-row input { width: 100%; accent-color: #3c705f; cursor: pointer; }
+.settings-social { display: flex; justify-content: center; padding: 8px 0 2px; }
+.settings-social a { display: inline-flex; align-items: center; gap: 9px; color: #3c705f; text-decoration: none; }
+.settings-social a:hover { text-decoration: underline; }
+.settings-social svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; }
+.settings-social .instagram-dot { fill: currentColor; stroke: none; }
 .settings-plans { display: grid; gap: 12px; }
 .settings-plan-option { padding: 20px; border: 2px solid #b7a27b; border-radius: 14px; background: #fff8e7; }
 .settings-plan-option.traveler { background: #dce7cc; border-color: #3c705f; }

@@ -7,14 +7,36 @@ import type { ScreenProps } from "../types";
 import type { BattleView } from "../modules/game/types";
 import { BattleQuiz } from "../components/BattleQuiz";
 import {
+  playChapterCompleteSound,
   playCorrectAnswerSound,
+  playDamageHitSound,
   playDamageSound,
   playFireGustSound,
-  playWinSound,
+  playRewardSound,
+  playSparkleSound,
   playWrongAnswerSound,
   setOverworldSound,
 } from "../components/gameAudio";
 import { playDoorCloseSound, playDoorOpenSound } from "../components/doorAudio";
+
+const gradeImages = import.meta.glob<string>(
+  ["../../assets/**/*A-plus-grade*", "../../assets/**/*a-plus-grade*"],
+  { eager: true, query: "?url", import: "default" },
+);
+const particleImages = import.meta.glob<string>(
+  [
+    "../../assets/**/*pop-glow-particles*.gif",
+    "../../assets/**/*pop-glow-particles*/spritesheet.png",
+  ],
+  { eager: true, query: "?url", import: "default" },
+);
+const gradeImage = Object.entries(gradeImages).find(([path]) =>
+  path.toLowerCase().includes("a-plus-grade"),
+)?.[1];
+const particleImageEntry = Object.entries(particleImages)[0];
+const popGlowParticles = particleImageEntry?.[1];
+const popGlowIsSpriteSheet =
+  particleImageEntry?.[0].toLowerCase().endsWith("spritesheet.png") ?? false;
 
 const status: Record<GamePhase, string> = {
   walking: "Walking east",
@@ -66,6 +88,7 @@ export function BattleScreen({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string>();
   const recorded = useRef(false);
+  const chapterCompleteSoundPlayed = useRef(false);
   const submittedAnswerKey = useRef<string | undefined>(undefined);
   const lastFeedbackKey = useRef<string | undefined>(undefined);
   const loadingStarted = useRef(0);
@@ -164,9 +187,15 @@ export function BattleScreen({
   useEffect(() => {
     setStreak(0);
     setAttackInProgress(false);
+    chapterCompleteSoundPlayed.current = false;
     previousHp.current = undefined;
     lastFeedbackKey.current = undefined;
   }, [battleId]);
+  useEffect(() => {
+    if (battle?.status !== "passed" || chapterCompleteSoundPlayed.current) return;
+    chapterCompleteSoundPlayed.current = true;
+    playChapterCompleteSound();
+  }, [battle?.status]);
   useEffect(() => {
     if (!feedbackKey) {
       lastFeedbackKey.current = undefined;
@@ -176,6 +205,7 @@ export function BattleScreen({
     lastFeedbackKey.current = feedbackKey;
     if (submittedAnswerKey.current !== feedbackKey) return;
     submittedAnswerKey.current = undefined;
+    if (feedback?.correct) playCorrectAnswerSound();
     if (!battle || !world || !inEncounter || !feedback) return;
     const previous = previousHp.current;
     const sameBattle = previous?.battleId === battle.id;
@@ -200,7 +230,6 @@ export function BattleScreen({
           const nextStreak = streak + 1;
           setStreak(nextStreak);
           if (nextStreak > 5) playFireGustSound();
-          playCorrectAnswerSound();
         },
       );
     } else {
@@ -227,9 +256,12 @@ export function BattleScreen({
     else menuDialog.current?.close();
   }, [menu]);
   useEffect(() => {
-    if (gameState === GameState.result && !recorded.current) {
+    if (
+      gameState === GameState.result &&
+      battleId !== undefined &&
+      !recorded.current
+    ) {
       recorded.current = true;
-      playWinSound();
       setSaving(true);
       onComplete()
         .catch((error) =>
@@ -241,7 +273,7 @@ export function BattleScreen({
         )
         .finally(() => setSaving(false));
     }
-  }, [gameState, onComplete]);
+  }, [battleId, gameState, onComplete]);
   function retry() {
     setWorld(undefined);
     setLoadError(false);
@@ -276,12 +308,6 @@ export function BattleScreen({
         {world && game && battle && (
           <div aria-hidden={phase !== "ready"} inert={phase !== "ready"}>
             <header className="battle-header">
-              <div className="battle-heading">
-                <h1>{title}</h1>
-                <p>
-                  Chapter {battle.chapter} · {battle.total} questions
-                </p>
-              </div>
               {streak > 0 && (
                 <div
                   key={streak}
@@ -342,32 +368,29 @@ export function BattleScreen({
           aria-hidden={phase !== "ready"}
           inert={phase !== "ready"}
         >
-          <div className="battle-status">
-            <div className="battle-status-copy">
-              <h2 data-testid="fight-status" aria-live="polite">
-                {game.state === GameState.result
-                  ? battle.status === "passed"
-                    ? "Chapter cleared!"
-                    : battle.status === "failed"
-                      ? "Defeated"
-                      : "Saving result…"
-                  : game.paused
-                    ? "Journey paused"
-                    : status[game.state]}
-              </h2>
-              {!inEncounter && <p>
-                {game.state === GameState.result
-                    ? `${battle.correct} / ${battle.total} correct. ${battle.status === "passed" ? `+${battle.goldReward} gold · +${battle.gemsReward ?? 0} gems / +${battle.xpReward} XP` : battle.status === "failed" ? "Your HP reached 0. Retry the chapter." : "Saving your combat result."}`
-                    : game.state === GameState.encounterComplete
-                      ? "The trail opens up again."
-                      : "Follow the path toward the next clearing."}
-              </p>}
+          {game.state === GameState.result ? (
+            <ChapterResultPanel battle={battle} />
+          ) : game.state === GameState.walking && game.cleared > 0 && !battle.finished ? (
+            <Button
+              label="Skip walk"
+              tone="gold"
+              className="battle-primary-action"
+              onPress={() => world.skipToNextEncounter()}
+            />
+          ) : inEncounter ? null : (
+            <div className="battle-status">
+              <div className="battle-status-copy">
+                <h2 data-testid="fight-status" aria-live="polite">
+                  {game.paused ? "Journey paused" : status[game.state]}
+                </h2>
+                {!inEncounter && <p>
+                  {game.state === GameState.encounterComplete
+                    ? "The trail opens up again."
+                    : "Follow the path toward the next clearing."}
+                </p>}
+              </div>
             </div>
-            <div className="battle-cleared">
-              <Icon name="flag-checkered" size={19} color="#506837" />
-              <span>{battle.enemiesDefeated} defeated</span>
-            </div>
-          </div>
+          )}
           {inEncounter && (
             <BattleQuiz
               battle={battle}
@@ -416,9 +439,9 @@ export function BattleScreen({
               ) : (
                 <>
                   <Button
-                    label="Back to chapter"
+                    label="Back to map"
                     tone="gold"
-                    onPress={() => navigate("RegionDetail")}
+                    onPress={() => navigate("Expedition")}
                   />
                   <Button
                     label={saving ? "Starting…" : "Retry chapter"}
@@ -443,6 +466,11 @@ export function BattleScreen({
         <div className="battle-menu-card">
           <h2 id="battle-menu-title">{menu === "restart" ? "Restart battle?" : menu === "exit" ? "Exit battle?" : "Paused"}</h2>
           {menu === "pause" ? <>
+            <div className="battle-menu-chapter">
+              <strong>{title}</strong>
+              <span>Chapter {battle?.chapter} · {battle?.total} questions</span>
+              <span>{gameState ? status[gameState] : ""}</span>
+            </div>
             <Button label="Continue" tone="gold" onPress={() => setMenu(null)} />
             <Button label="Restart" onPress={() => setMenu("restart")} />
             <Button label="Exit" style={exitStyle} onPress={() => setMenu("exit")} />
@@ -526,11 +554,171 @@ function HealthBar({
   profile: string;
 }) {
   const id = enemy ? "enemy-hp" : "player-hp";
+  const previousHp = useRef(hp);
+  const [shaking, setShaking] = useState(false);
+  useEffect(() => {
+    if (hp >= previousHp.current) {
+      previousHp.current = hp;
+      return;
+    }
+    previousHp.current = hp;
+    setShaking(false);
+    const frame = requestAnimationFrame(() => setShaking(true));
+    const timeout = window.setTimeout(() => setShaking(false), 480);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.clearTimeout(timeout);
+    };
+  }, [hp]);
   return <section className={`battle-health ${enemy ? "combat-hud" : "player-health"}`} aria-label={label}>
-    <div className={`health-bar ${enemy ? "enemy-health-bar" : ""}`}>
+    <div className={`health-bar ${enemy ? "enemy-health-bar" : ""} ${shaking ? "health-bar-shaking" : ""}`}>
       {!enemy && <img className="health-profile" src={profile} alt="" />}
       <div className="health-frame"><progress id={id} aria-label={label} max={max} value={hp} /></div>
       {enemy && <img className="health-profile" src={profile} alt="" />}
     </div>
   </section>;
+}
+
+const resultRewardOrder = ["gems", "coins", "xp", "defeated"] as const;
+
+function RewardIcon({ reward }: { reward: (typeof resultRewardOrder)[number] }) {
+  const [particlesVisible, setParticlesVisible] = useState(true);
+  useEffect(() => {
+    if (!particlesVisible) return;
+    const timer = window.setTimeout(() => setParticlesVisible(false), 500);
+    return () => window.clearTimeout(timer);
+  }, [particlesVisible]);
+  return (
+    <span className="result-reward-icon">
+      {reward === "xp" ? (
+        <span className="result-xp-icon" aria-hidden="true">✦</span>
+      ) : (
+        <img
+          src={reward === "gems" ? icons.gems : reward === "coins" ? icons.coins : icons.equipment}
+          alt=""
+        />
+      )}
+      {particlesVisible && popGlowParticles && (popGlowIsSpriteSheet ? (
+        <span
+          className="result-particles result-particles-sprite"
+          style={{ backgroundImage: `url("${popGlowParticles}")` }}
+          aria-hidden="true"
+          onAnimationEnd={() => setParticlesVisible(false)}
+        />
+      ) : (
+        <img
+          className="result-particles result-particles-gif"
+          src={popGlowParticles}
+          alt=""
+          onAnimationEnd={() => setParticlesVisible(false)}
+        />
+      ))}
+    </span>
+  );
+}
+
+function ChapterResultPanel({ battle }: { battle: BattleView }) {
+  const [revealedRewards, setRevealedRewards] = useState(0);
+  const [gradeStamped, setGradeStamped] = useState(false);
+  const [gradeGlimmered, setGradeGlimmered] = useState(false);
+  const grade = battle.total === 0
+    ? "F"
+    : battle.correct / battle.total >= 0.9
+      ? "A"
+      : battle.correct / battle.total >= 0.8
+        ? "B"
+        : battle.correct / battle.total >= 0.7
+          ? "C"
+          : battle.correct / battle.total >= 0.6
+            ? "D"
+            : battle.correct / battle.total >= 0.5
+              ? "E"
+              : "F";
+  const rewardValues = {
+    gems: `+${battle.status === "passed" ? battle.gemsReward ?? 0 : 0}`,
+    coins: `+${battle.status === "passed" ? battle.goldReward : 0}`,
+    xp: `+${battle.status === "passed" ? battle.xpReward : 0}`,
+    defeated: `${battle.enemiesDefeated} defeated`,
+  };
+
+  useEffect(() => {
+    setRevealedRewards(0);
+    setGradeStamped(false);
+    setGradeGlimmered(false);
+    const timers: number[] = [];
+    resultRewardOrder.forEach((reward, index) => {
+      timers.push(window.setTimeout(() => {
+        setRevealedRewards(index + 1);
+        if (reward === "defeated") playDamageHitSound();
+        else playRewardSound(reward);
+      }, 180 + index * 560));
+    });
+    const stampTimer = window.setTimeout(() => {
+      playDamageHitSound();
+      setGradeStamped(true);
+    }, 180 + resultRewardOrder.length * 560 + 180);
+    timers.push(stampTimer);
+    const glimmerTimer = window.setTimeout(() => {
+      playSparkleSound();
+      setGradeGlimmered(true);
+    }, 180 + resultRewardOrder.length * 560 + 900);
+    timers.push(glimmerTimer);
+    return () => timers.forEach(window.clearTimeout);
+  }, [battle.id, battle.status]);
+
+  return (
+    <section
+      className="battle-result-panel"
+      data-grade-stamped={gradeStamped}
+      aria-labelledby="fight-status"
+    >
+      <div className="result-reward-column">
+        <h2 id="fight-status" data-testid="fight-status">{battle.status === "passed" ? "Chapter cleared!" : "Adventure over"}</h2>
+        <p className="result-score">{battle.correct} / {battle.total} correct</p>
+        <div className="result-rewards" aria-label="Chapter rewards">
+          {resultRewardOrder.map((reward, index) => {
+            if (index >= revealedRewards) return null;
+            return (
+              <div className={`result-reward reward-${reward}`} key={reward}>
+                <RewardIcon reward={reward} />
+                <span className="result-reward-value" aria-label={rewardValues[reward]}>
+                  {[...rewardValues[reward]].map((character, characterIndex) => (
+                    <span
+                      className="result-wave-letter"
+                      key={`${character}-${characterIndex}`}
+                      style={{ animationDelay: `${characterIndex * 35}ms` }}
+                    >
+                      {character}
+                    </span>
+                  ))}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div
+        className={`result-grade-seal ${gradeStamped ? "stamped" : ""} ${gradeGlimmered ? "glimmered" : ""}`}
+        aria-label={`Grade ${grade}`}
+      >
+        {gradeImage ? (
+          <>
+            <img src={gradeImage} alt={`Grade ${grade}`} />
+            {gradeGlimmered && (
+              <span
+                className="result-grade-glimmer"
+                aria-hidden="true"
+                style={{
+                  maskImage: `url("${gradeImage}")`,
+                  WebkitMaskImage: `url("${gradeImage}")`,
+                }}
+              />
+            )}
+          </>
+        ) : (
+          <span className="result-grade-fallback">{grade}</span>
+        )}
+      </div>
+    </section>
+  );
 }

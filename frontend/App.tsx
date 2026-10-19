@@ -20,6 +20,7 @@ import type { Screen } from "./src/types";
 import { ui } from "./src/theme";
 import { BattleScreen } from "./src/screens/BattleScreen";
 import { SettingsScreen } from "./src/screens/SettingsScreen";
+import { usePreference } from "./src/modules/settings/preferences";
 const navigation = [
   { screen: "Hub", icon: icons.hub },
   { screen: "Expedition", icon: icons.map },
@@ -35,6 +36,7 @@ const shellAssets = [
 ];
 export default function App() {
   const reducedMotion = useReducedMotion();
+  const [fontScale] = usePreference("nerdungeon.fontScale", "1");
   const settingsFrom = useRef<Screen>("Hub");
   const [authStatus, setAuthStatus] = useState<
     "loading" | "signed-in" | "signed-out"
@@ -47,6 +49,12 @@ export default function App() {
   const [visited, setVisited] = useState(() => new Set<Screen>(["Hub"]));
   const pages = useRef<Partial<Record<Screen, HTMLDivElement | null>>>({});
   const main = useRef<HTMLElement>(null);
+  useEffect(() => {
+    document.documentElement.style.setProperty("--game-font-scale", fontScale);
+    return () => {
+      document.documentElement.style.removeProperty("--game-font-scale");
+    };
+  }, [fontScale]);
   useEffect(() => {
     const onClick = (event: MouseEvent) => {
       if (

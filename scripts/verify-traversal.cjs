@@ -35,7 +35,7 @@ for (let frame = 0; frame < 30000 && game.state !== "result"; frame++) {
   assert.equal(game.playerY, hero, "hero stays fixed");
   if (state !== "walking") assert.equal(game.distance, distance, "world frozen outside walking");
   if (state === "walking" && game.state === "encounterStarting") {
-    assert(Math.abs(walkingFrames / 60 - (game.cleared ? 5.5 : WORLD.walkSeconds)) <= 1 / 60, "each kill is followed by a full walk");
+    assert(Math.abs(walkingFrames / 60 - (game.cleared ? WORLD.encounterWalkSeconds : WORLD.walkSeconds)) <= 1 / 60, "each kill is followed by a full walk");
     walkingFrames = 0;
   }
   if (game.state === "encounter" || game.state === "bossEncounter") {
@@ -54,6 +54,14 @@ assert.deepEqual(counts, [1, 1, 1, 1, 1], "one monster per encounter, continues 
 assert.equal(game.state, "result");
 assert.equal(game.cleared, 5, "duplicate completion ignored");
 assert(game.distance > stoppedAt, "final kill walks while collecting before result");
+const skippable = new FantasyGame(780);
+advance(skippable, WORLD.walkSeconds + WORLD.revealSeconds + 0.1);
+assert.equal(skippable.state, "encounter");
+skippable.completeEncounter();
+advance(skippable, WORLD.completeSeconds + 0.1);
+assert.equal(skippable.state, "walking");
+skippable.skipToNextEncounter();
+assert.equal(skippable.state, "encounterStarting", "skip advances straight to the next encounter");
 const fresh = new FantasyGame(780);
 for (let i = 0; i < 300; i++) { fresh.chunks.advance(100); coverage(fresh); }
 assert(fresh.chunks.recycled > 50, "pool cycles repeatedly");

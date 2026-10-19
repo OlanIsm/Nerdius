@@ -160,7 +160,7 @@
   height: 100%;
   padding: 0 18px;
   border: 0;
-  border-radius: 8px;
+  border-radius: px;
   outline: none;
   background: transparent;
   box-shadow: none;
@@ -299,9 +299,10 @@
 }
 
 .auth-link {
-  border: 0;
-  padding: 6px;
-  background: transparent;
+  border: 4px;
+  border-color: black;
+  padding: 15px;
+  background: slategray;
   color: #fff1ca;
   font:
     600 14px/1.3 Epilogue_500Medium,
@@ -332,6 +333,10 @@
   font:
     700 18px/1.3 Rubik_700Bold,
     sans-serif;
+}
+
+.auth-page :not(.icon) {
+  font-size: 30px !important;
 }
 
 @media (max-height: 650px) {

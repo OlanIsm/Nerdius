@@ -91,6 +91,12 @@ export class FantasyGame {
     if (this.state === GameState.result) this.transition(GameState.walking);
   }
 
+  skipToNextEncounter() {
+    if (this.state !== GameState.walking || this.cleared === 0 || this.finished) return;
+    this.elapsed = Math.max(this.elapsed, WORLD.encounterWalkSeconds);
+    this.update(0.001);
+  }
+
   update(delta: number) {
     if (this.paused || !Number.isFinite(delta) || delta <= 0) return;
     const dt = Math.min(delta, WORLD.maxDelta);
@@ -127,7 +133,7 @@ export class FantasyGame {
     this.distance += movement;
     this.walkTime += dt;
     if (reached) this.beginEncounter();
-    else if (this.debugStop === null && !this.finished && this.elapsed >= (this.cleared ? 5.5 : WORLD.walkSeconds)) {
+    else if (this.debugStop === null && !this.finished && this.elapsed >= (this.cleared ? WORLD.encounterWalkSeconds : WORLD.walkSeconds)) {
       this.beginEncounter(encounters[this.nextEncounter++ % encounters.length]);
     }
   }

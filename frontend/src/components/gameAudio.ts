@@ -6,6 +6,11 @@ const audioFiles = import.meta.glob<string>(
     "../../assets/audio/winSound.m4a",
     "../../assets/audio/wood2.m4a",
     "../../assets/audio/pop.mp3",
+    "../../assets/audio/chapter complete.m4a",
+    "../../assets/audio/cash.mp3",
+    "../../assets/audio/gems.m4a",
+    "../../assets/audio/xp.m4a",
+    "../../assets/audio/sparkle.mp3",
   ],
   { eager: true, query: "?url", import: "default" },
 );
@@ -32,7 +37,7 @@ const walkingUrl = new URL(
   import.meta.url,
 ).href;
 const correctAnswerUrl = new URL(
-  "../../assets/audio/ding.m4a",
+  "../../assets/audio/correct-kalimba.m4a",
   import.meta.url,
 ).href;
 const damageHitUrl = new URL(
@@ -48,7 +53,7 @@ const fireGustUrl = new URL(
   import.meta.url,
 ).href;
 const wrongAnswerUrl = new URL(
-  "../../assets/audio/wronganswer.m4a",
+  "../../assets/audio/wrong-brass.m4a",
   import.meta.url,
 ).href;
 const treasureUrl = new URL(
@@ -58,6 +63,13 @@ const treasureUrl = new URL(
 const authTextBoxUrl = audioAsset("Sign chain click.m4a", "wood2.m4a");
 const authMusicUrl = audioAsset("login signup music.m4a");
 const winUrl = audioAsset("winSound.m4a");
+const chapterCompleteUrl = audioAsset("chapter complete.m4a");
+const rewardAudioUrls = {
+  coins: audioAsset("cash.mp3"),
+  gems: audioAsset("gems.m4a"),
+  xp: audioAsset("xp.m4a"),
+};
+const sparkleUrl = audioAsset("sparkle.mp3");
 const characterAttackUrls = {
   olan: new URL(
     "../../assets/audio/character-attack-sfx/olan-attack-sfx.m4a",
@@ -97,8 +109,64 @@ walkingAudio.volume = 0.35;
 const authMusic = authMusicUrl ? new Audio(authMusicUrl) : undefined;
 if (authMusic) {
   authMusic.preload = "auto";
-  authMusic.loop = true;
+  authMusic.loop = false;
   authMusic.volume = 0.35;
+}
+
+let authMusicActive = false;
+let authMusicRestart: number | undefined;
+let authMusicStartedAt: number | undefined;
+let authMusicCycle = 1;
+let overworldSoundActive = false;
+let walkingSoundActive = false;
+const characterVoices = new Set<HTMLAudioElement>();
+const authMusicCycleMs = 33_600;
+
+function preferenceEnabled(key: "nerdungeon.sfx" | "nerdungeon.music") {
+  try {
+    return localStorage.getItem(key) !== "off";
+  } catch {
+    return true;
+  }
+}
+
+function syncMusicPreferences() {
+  if (!preferenceEnabled("nerdungeon.music")) {
+    if (authMusicRestart !== undefined) window.clearTimeout(authMusicRestart);
+    authMusicRestart = undefined;
+    authMusicStartedAt = undefined;
+    authMusic?.pause();
+    if (authMusic) authMusic.currentTime = 0;
+    overworldAudio.pause();
+    return;
+  }
+  if (authMusicActive && authMusic?.paused) void playAuthMusicCycle();
+  if (overworldSoundActive && overworldAudio.paused)
+    void overworldAudio.play().catch(reportPlaybackError);
+}
+
+function syncSfxPreferences() {
+  if (!preferenceEnabled("nerdungeon.sfx")) {
+    walkingAudio.pause();
+    characterVoices.forEach((voice) => voice.pause());
+    return;
+  }
+  if (walkingSoundActive && walkingAudio.paused)
+    void walkingAudio.play().catch(reportPlaybackError);
+  characterVoices.forEach((voice) => {
+    if (voice.paused) void voice.play().catch(reportPlaybackError);
+  });
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("nerdungeon.preferencesChanged", () => {
+    syncMusicPreferences();
+    syncSfxPreferences();
+  });
+  window.addEventListener("storage", () => {
+    syncMusicPreferences();
+    syncSfxPreferences();
+  });
 }
 
 function reportPlaybackError(error: unknown) {
@@ -107,6 +175,7 @@ function reportPlaybackError(error: unknown) {
 }
 
 function playOneShot(source: string, fallback?: string) {
+  if (!preferenceEnabled("nerdungeon.sfx")) return;
   const audio = new Audio(source);
   audio.volume = 0.5;
   let fallbackPlayed = false;
@@ -137,6 +206,19 @@ export function playWinSound() {
   if (winUrl) playOneShot(winUrl, treasureUrl);
 }
 
+export function playChapterCompleteSound() {
+  if (chapterCompleteUrl) playOneShot(chapterCompleteUrl);
+}
+
+export function playRewardSound(reward: keyof typeof rewardAudioUrls) {
+  const source = rewardAudioUrls[reward];
+  if (source) playOneShot(source);
+}
+
+export function playSparkleSound() {
+  if (sparkleUrl) playOneShot(sparkleUrl);
+}
+
 export function playCharacterAttackSound(
   character: keyof typeof characterAttackUrls,
   delayMs = 0,
@@ -153,54 +235,78 @@ export function startCharacterVoice(character: VoiceCharacter) {
   const voice = new Audio(characterVoiceUrls[character]);
   voice.preload = "auto";
   voice.loop = true;
-  voice.preservesPitch = false;
+  voice.preservesPitch = true;
   let stopped = false;
-  let previousTime = 0;
   const play = () => {
-    if (stopped) return;
-    voice.playbackRate = 0.86 + Math.random() * 0.3;
+    if (stopped || !preferenceEnabled("nerdungeon.sfx")) return;
+    voice.playbackRate = 1;
     void voice.play().catch(reportPlaybackError);
   };
-  const varyPitchAtLoop = () => {
-    if (voice.currentTime < previousTime) play();
-    previousTime = voice.currentTime;
-  };
-  voice.addEventListener("timeupdate", varyPitchAtLoop);
+  characterVoices.add(voice);
   play();
   return () => {
     stopped = true;
+    characterVoices.delete(voice);
     voice.pause();
     voice.currentTime = 0;
-    voice.removeEventListener("timeupdate", varyPitchAtLoop);
   };
+}
+
+function playAuthMusicCycle(): Promise<void> {
+  if (!authMusic || !authMusicActive || !preferenceEnabled("nerdungeon.music"))
+    return Promise.resolve();
+  return authMusic.play().then(() => {
+    if (authMusicStartedAt === undefined) {
+      authMusicStartedAt = performance.now();
+      authMusicCycle = 1;
+    }
+    if (authMusicRestart !== undefined) window.clearTimeout(authMusicRestart);
+    const nextRestart = authMusicStartedAt + authMusicCycle * authMusicCycleMs;
+    authMusicRestart = window.setTimeout(() => {
+      if (!authMusicActive || !preferenceEnabled("nerdungeon.music")) return;
+      authMusicCycle++;
+      authMusic.currentTime = 0;
+      void playAuthMusicCycle().catch(reportPlaybackError);
+    }, Math.max(0, nextRestart - performance.now()));
+  });
 }
 
 export function setAuthMusic(active: boolean) {
   if (!authMusic) return;
+  authMusicActive = active;
   if (!active) {
+    if (authMusicRestart !== undefined) window.clearTimeout(authMusicRestart);
+    authMusicRestart = undefined;
+    authMusicStartedAt = undefined;
+    authMusicCycle = 1;
     authMusic.pause();
     authMusic.currentTime = 0;
     return;
   }
-  if (authMusic.paused) void authMusic.play().catch(reportPlaybackError);
+  if (authMusic.paused && preferenceEnabled("nerdungeon.music"))
+    void playAuthMusicCycle().catch(reportPlaybackError);
 }
 
 export function setOverworldSound(active: boolean) {
+  overworldSoundActive = active;
   if (!active) {
     overworldAudio.pause();
     overworldAudio.currentTime = 0;
     return;
   }
-  if (overworldAudio.paused) void overworldAudio.play().catch(reportPlaybackError);
+  if (overworldAudio.paused && preferenceEnabled("nerdungeon.music"))
+    void overworldAudio.play().catch(reportPlaybackError);
 }
 
 export function setWalkingSound(active: boolean) {
+  walkingSoundActive = active;
   if (!active) {
     walkingAudio.pause();
     walkingAudio.currentTime = 0;
     return;
   }
-  if (walkingAudio.paused) void walkingAudio.play().catch(reportPlaybackError);
+  if (walkingAudio.paused && preferenceEnabled("nerdungeon.sfx"))
+    void walkingAudio.play().catch(reportPlaybackError);
 }
 
 export function playCorrectAnswerSound() {

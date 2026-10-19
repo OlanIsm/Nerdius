@@ -154,6 +154,12 @@ const ACTOR_DEPTH = layers.length - 3.5;
 const FOREGROUND_DEPTH = layers.length - 1;
 const BACKGROUND_HEIGHT_RATIO = 1;
 const BACKGROUND_ASPECT_RATIO = 3973 / 3000;
+const DAMAGE_COLORS = {
+  olan: 0x9aaacb,
+  hannah: 0xff3948,
+  snarger: 0xff8a22,
+  nerd: 0xffdc28,
+} as const;
 export const OLAN_ATTACK_SOUND_DELAY_MS = 0;
 const GODRAYS = { enabled: true, alpha: 0.045, speed: 0.035, spacing: 150 };
 type EnemyAssets = {
@@ -167,20 +173,20 @@ const ENEMY_ASSETS: Record<SavannahEnemy, EnemyAssets> = {
   Hannah: {
     idle: "hannah-idle",
     attack: "hannah-attack",
-    color: 0x702b39,
+    color: DAMAGE_COLORS.hannah,
     scale: (ACTOR_SIZE / 768) * 1.5,
-    verticalOffsetMm: 3,
+    verticalOffsetMm: 0,
   },
   Snarger: {
     idle: "snarger-idle",
-    color: 0x194b2d,
+    color: DAMAGE_COLORS.snarger,
     scale: (ACTOR_SIZE / 2101) * 1.5,
-    verticalOffsetMm: 7,
+    verticalOffsetMm: 0,
   },
   Nerdius: {
     idle: "nerd-idle",
     attack: "nerd-well-actually",
-    color: 0x62318a,
+    color: DAMAGE_COLORS.nerd,
     scale: ACTOR_SIZE / 768,
     verticalOffsetMm: 0,
   },
@@ -188,6 +194,7 @@ const ENEMY_ASSETS: Record<SavannahEnemy, EnemyAssets> = {
 export type WorldControls = {
   model: FantasyGame;
   act: (action: () => void) => void;
+  skipToNextEncounter: () => void;
   setActive: (active: boolean) => void;
   attackPlayer: (damage: number, defeatsEnemy: boolean, onComplete: () => void) => void;
   attackEnemy: (damage: number, onComplete: () => void) => void;
@@ -262,6 +269,18 @@ export function PhaserWorld({
           onError();
           return;
         }
+        [
+          "scholar",
+          "olan-idle",
+          "hannah-idle",
+          "hannah-attack",
+          "snarger-idle",
+          "nerd-idle",
+          "nerd-well-actually",
+          ...layers.map((layer) => layer.name),
+        ].forEach((key) =>
+          this.textures.get(key).setFilter(Phaser.Textures.FilterMode.LINEAR),
+        );
         const framesFor = (texture: string, sheet: { frames: Record<string, unknown> }) =>
           Object.keys(sheet.frames).sort().map((frame) => ({ key: texture, frame }));
         this.anims.create({
@@ -346,6 +365,10 @@ export function PhaserWorld({
             model,
             act: (action) => {
               action();
+              this.sync();
+            },
+            skipToNextEncounter: () => {
+              model.skipToNextEncounter();
               this.sync();
             },
             setActive: (value) => {
@@ -637,7 +660,7 @@ export function PhaserWorld({
         const character = ENEMY_ASSETS[name];
         const strike = () => {
           if (enemy.active) enemy.play(character.idle);
-          this.showImpact(this.hero, 0x416d9b, damage, false, onComplete);
+          this.showImpact(this.hero, DAMAGE_COLORS.olan, damage, false, onComplete);
         };
         if (character.attack) {
           enemy.play(character.attack);
@@ -672,10 +695,11 @@ export function PhaserWorld({
           angle: { min: 205, max: 335 },
           lifespan: 480,
           gravityY: 150,
-          quantity: 16,
+          quantity: 20,
           tint: color,
-          scale: { start: 1, end: 0 },
-        });
+          blendMode: Phaser.BlendModes.ADD,
+          scale: { start: 1.4, end: 0 },
+        }).setDepth(FOREGROUND_DEPTH + 2);
         particles.explode(16);
         this.time.delayedCall(550, () => particles.destroy());
         const label = this.add

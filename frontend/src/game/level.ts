@@ -12,6 +12,7 @@ export const WORLD = {
   brakeSeconds: 0.55,
   revealSeconds: 0.35,
   completeSeconds: 0.65,
+  encounterWalkSeconds: 5.5,
   maxDelta: 0.05,
 };
 

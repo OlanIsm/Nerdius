@@ -56,6 +56,16 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
         <p className="settings-note">Paid plans are not available yet.</p>
       </div>}
       {section === "Account" && <AccountSettings />}
+      <footer className="settings-social">
+        <a href="https://www.instagram.com/_nerdius_/" target="_blank" rel="noreferrer">
+          <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+            <rect x="3" y="3" width="18" height="18" rx="5" />
+            <circle cx="12" cy="12" r="4" />
+            <circle cx="18" cy="6" r="1" className="instagram-dot" />
+          </svg>
+          @_nerdius_
+        </a>
+      </footer>
     </section>
   );
 }
@@ -83,12 +93,27 @@ function ProfileSettings() {
 function PreferenceSettings() {
   const [sound, saveSound] = usePreference("nerdungeon.summonSound", "on");
   const [motion, saveMotion] = usePreference("nerdungeon.reduceMotion", "off");
+  const [fontScale, saveFontScale] = usePreference("nerdungeon.fontScale", "1");
+  const [sfx, saveSfx] = usePreference("nerdungeon.sfx", "on");
+  const [music, saveMusic] = usePreference("nerdungeon.music", "on");
+  const [characterQuotes, saveCharacterQuotes] = usePreference("nerdungeon.characterQuotes", "on");
   const [error, setError] = useState<string>();
   function update(save: (value: string) => void, enabled: boolean) {
     try { save(enabled ? "on" : "off"); setError(undefined); }
     catch (failure) { setError(failure instanceof Error ? failure.message : "Could not save preference."); }
   }
+  function updateValue(save: (value: string) => void, value: string) {
+    try { save(value); setError(undefined); }
+    catch (failure) { setError(failure instanceof Error ? failure.message : "Could not save preference."); }
+  }
   return <div className="settings-panel settings-preferences">
+    <label className="settings-slider-row" htmlFor="game-font-size">
+      <span><strong>Game text size</strong><small>{Math.round(Number(fontScale) * 100)}%</small></span>
+      <input id="game-font-size" type="range" min="0.75" max="1.5" step="0.05" value={fontScale} onChange={(event) => updateValue(saveFontScale, event.target.value)} />
+    </label>
+    <label className="settings-switch-row"><span><strong>Sound effects</strong></span><input type="checkbox" role="switch" checked={sfx !== "off"} onChange={(event) => update(saveSfx, event.target.checked)} /></label>
+    <label className="settings-switch-row"><span><strong>Music</strong></span><input type="checkbox" role="switch" checked={music !== "off"} onChange={(event) => update(saveMusic, event.target.checked)} /></label>
+    <label className="settings-switch-row"><span><strong>Character quotes</strong><small>Toggle character dialogue and voice.</small></span><input type="checkbox" role="switch" checked={characterQuotes !== "off"} onChange={(event) => update(saveCharacterQuotes, event.target.checked)} /></label>
     <label className="settings-switch-row"><span><strong>Summon sound</strong></span><input type="checkbox" role="switch" checked={sound !== "off"} onChange={(event) => update(saveSound, event.target.checked)} /></label>
     <label className="settings-switch-row"><span><strong>Reduce motion</strong><small>Also follows your device setting.</small></span><input type="checkbox" role="switch" checked={motion === "on"} onChange={(event) => update(saveMotion, event.target.checked)} /></label>
     {error && <p role="alert" className="settings-error">{error}</p>}

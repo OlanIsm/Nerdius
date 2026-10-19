@@ -1,6 +1,13 @@
 import { useSyncExternalStore } from "react";
 
-type PreferenceKey = "nerdungeon.displayName" | "nerdungeon.summonSound" | "nerdungeon.reduceMotion";
+type PreferenceKey =
+  | "nerdungeon.displayName"
+  | "nerdungeon.summonSound"
+  | "nerdungeon.reduceMotion"
+  | "nerdungeon.fontScale"
+  | "nerdungeon.sfx"
+  | "nerdungeon.music"
+  | "nerdungeon.characterQuotes";
 const changed = "nerdungeon.preferencesChanged";
 function subscribe(listener: () => void) {
   window.addEventListener("storage", listener);

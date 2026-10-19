@@ -38,6 +38,7 @@ export function Button({
   tone = "wood",
   disabled = false,
   style,
+  className,
 }: {
   label: string;
   icon?: IconName;
@@ -45,12 +46,13 @@ export function Button({
   tone?: "wood" | "gold" | "teal" | "quiet";
   disabled?: boolean;
   style?: CSSProperties;
+  className?: string;
 }) {
   const color = tone === "wood" || tone === "teal" ? colors.white : colors.ink;
   return (
     <button
       type="button"
-      className={`game-button ${tone}`}
+      className={`game-button ${tone} ${className ?? ""}`.trim()}
       aria-label={label}
       disabled={disabled}
       onClick={onPress}
