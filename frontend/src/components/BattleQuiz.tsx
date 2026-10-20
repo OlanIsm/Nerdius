@@ -8,7 +8,6 @@ import { startCharacterVoice, type VoiceCharacter } from "./gameAudio";
 
 const nerdPhrases = [
   "Ummm, actually... statistically speaking, according to my calculated calculations, this is simple.",
-  "Ummm, actually... I highly doubt your brain can process this question.",
   "Ummm, actually...........................................",
   "One does not simply walk into this neighborhood without a map.",
   "Technically speaking, water isn't wet; it just makes other things wet.",
@@ -32,7 +31,7 @@ const snargerPhrases = [
 ];
 const snargerCorrectPhrases = [
   "Hisssss... My battery is draining...",
-  "Hissss... cut me some slack, you're already doing to me what they're gonna do to me at work tomorrow.",
+  "Hissss... cut me some slack, they're gonna do this to me at work tomorrow.",
 ];
 const snargerWrongPhrases = ["Hissssssss... Focus!", "Hisssss... Pay attention!"];
 const hannahPhrases = [
@@ -87,7 +86,7 @@ function characterPrompt(
     if (quotesEnabled && seed % 10 < 3) text = `${choose(nerdPhrases, seed >>> 3)} ${text}`;
   } else if (normalizedSpeaker === "snarger") {
     if (quotesEnabled) {
-      text = `Hiss${"s".repeat(5 + (seed % 12))}: ${text}`;
+      text = `Hiss${"s".repeat(5 + (seed % 12))}... ${text}`;
       if (seed % 4 === 0) text = `${text} Ssssspeak fast.`;
       else if (seed % 4 === 1) text = `${choose(snargerPhrases, seed >>> 2)} ${text}`;
     }
@@ -108,7 +107,7 @@ function characterFeedback(
   const normalizedSpeaker = speaker.toLowerCase();
   if (normalizedSpeaker === "snarger")
     return choose(correct ? snargerCorrectPhrases : snargerWrongPhrases, seed);
-  if (normalizedSpeaker === "hannah") return correct ? "" : "Whatever.";
+  if (normalizedSpeaker === "hannah") return correct ? "Whatever." : "";
   return choose(correct ? nerdCorrectPhrases : nerdWrongPhrases, seed);
 }
 

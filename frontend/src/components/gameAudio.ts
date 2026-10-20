@@ -1,6 +1,6 @@
 const audioFiles = import.meta.glob<string>(
   [
-    "../../assets/audio/wood.mp4",
+    "../../assets/audio/wood click 21.m4a",
     "../../assets/audio/Sign chain click.m4a",
     "../../assets/audio/login signup music.m4a",
     "../../assets/audio/winSound.m4a",
@@ -23,7 +23,7 @@ function audioAsset(fileName: string, fallback?: string) {
     (fallback ? audioFiles[`../../assets/audio/${fallback}`] : undefined)
   );
 }
-const woodUrl = audioAsset("wood.mp4", "pop.mp3") ?? popUrl;
+const woodUrl = audioAsset("wood click 21.m4a");
 const chirpingUrl = new URL(
   "../../assets/audio/chirping.mp3",
   import.meta.url,
