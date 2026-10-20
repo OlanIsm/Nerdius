@@ -4,7 +4,7 @@ import { HttpError } from "./errors.ts";
 export async function generatePdfJson(pdf: Buffer, schema: object, pageCount: number, instruction: { system: string; user: string }): Promise<unknown> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new HttpError("PDF generation is not configured", 503);
-  const model = process.env.GEMINI_MODEL || "gemini-3.5-flash";
+  const model = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
   let response: Response;
   let inputLimit = false;
   let providerStatus: string | undefined;
