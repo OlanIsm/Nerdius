@@ -1084,7 +1084,7 @@ p {
   max-height: 4.6em;
   overflow-y: auto;
   overflow-wrap: anywhere;
-  line-height: 1.4;
+  line-height: 1.2;
 }
 .visually-hidden {
   position: absolute !important;
@@ -1296,7 +1296,7 @@ body :not(.icon) {
   font-family: var(--game-font-family), sans-serif !important;
   font-size: calc(20px * var(--game-font-scale, 1)) !important;
   font-weight: 700 !important;
-  line-height: 1.4;
+  line-height: 1.2;
 }
 body :is(button, [role="button"], select, textarea, input:not([type="radio"]):not([type="checkbox"])) {
   border-radius: 10px 12px 9px 11px / 11px 9px 12px 10px;

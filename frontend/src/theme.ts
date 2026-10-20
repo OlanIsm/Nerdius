@@ -84,7 +84,7 @@ export const ui = {
     fontFamily: fonts.body,
     fontSize: 13,
     color: colors.muted,
-    lineHeight: 1.5,
+    lineHeight: 1.2,
   },
   label: {
     fontFamily: fonts.label,
