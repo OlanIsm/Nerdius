@@ -6,6 +6,7 @@ import { changeState, readState } from "./store.ts";
 import { forgeExpedition } from "./forge.ts";
 import { gameSnapshot } from "./snapshot.ts";
 import { HttpError } from "../../platform/errors.ts";
+import { forgeRateLimiter } from "../../platform/rateLimiter.ts";
 
 export const gameRouter = Router();
 
@@ -23,7 +24,7 @@ gameRouter.post("/game", async (request, response) => {
 });
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024, files: 1 } });
-gameRouter.post("/game/forge", upload.single("file"), async (request, response) => {
+gameRouter.post("/game/forge", forgeRateLimiter, upload.single("file"), async (request, response) => {
   const { client, userId } = session(response.locals);
   response.json(gameSnapshot(await forgeExpedition(client, userId, request.file)));
 });

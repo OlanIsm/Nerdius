@@ -18,6 +18,7 @@ next-env.d.ts
 *.pem
 .vercel/
 backend/data/
+dummy*.pdf
 
 # Local tooling
 .DS_Store
