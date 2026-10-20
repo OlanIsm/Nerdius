@@ -4,6 +4,7 @@ import { accountRouter, authenticate } from "./modules/account/index.ts";
 import { gameRouter } from "./modules/game/index.ts";
 import { GameActionError } from "./modules/game/battle.ts";
 import { HttpError } from "./platform/errors.ts";
+import { apiRateLimiter } from "./platform/rateLimiter.ts";
 
 export const app = express();
 app.disable("x-powered-by");
@@ -20,7 +21,7 @@ app.use("/api", (request, response, next) => {
   if (request.method === "OPTIONS") return void response.sendStatus(204);
   next();
 });
-app.use("/api", authenticate, accountRouter, gameRouter);
+app.use("/api", apiRateLimiter, authenticate, accountRouter, gameRouter);
 
 const errors: ErrorRequestHandler = (error: Error & { status?: number; type?: string }, _request, response, _next) => {
   if (error instanceof multer.MulterError) return void response.status(400).json({ error: "Choose a PDF or DOCX up to 25 MB" });

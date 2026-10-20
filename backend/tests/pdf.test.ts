@@ -69,7 +69,7 @@ test("PDF generation accepts an injected provider and validates its output", asy
 
 test("forge sends PDF bytes to Gemini, persists validated content and never saves failed generations", async (t) => {
   const previous = { ...process.env };
-  Object.assign(process.env, { SUPABASE_URL: "https://test.supabase.co", SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test", SUPABASE_SECRET_KEY: "sb_secret_test", GEMINI_API_KEY: "test-key" });
+  Object.assign(process.env, { SUPABASE_URL: "https://test.supabase.co", SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test", SUPABASE_SECRET_KEY: "sb_secret_test", GEMINI_API_KEY: "test-key", RATE_LIMIT_FORGE_MAX: "100" });
   t.after(() => {
     for (const key of ["SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_SECRET_KEY", "GEMINI_API_KEY"]) {
       if (previous[key] === undefined) delete process.env[key]; else process.env[key] = previous[key];
