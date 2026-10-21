@@ -41,6 +41,16 @@ const hannahPhrases = [
   "*Ding*",
   "Looks like someone's got an exam soon, huh?",
 ];
+const hannahCorrectPhrases = [
+  "Whatever.",
+  "You got that right.",
+  "Nice.",
+];
+const hannahWrongPhrases = [
+  "Say cheese!",
+  "Might wanna post this.",
+  "*Plays a song*",
+];
 
 function hash(value: string) {
   return [...value].reduce((total, character) => total * 31 + character.charCodeAt(0), 7) >>> 0;
@@ -107,7 +117,8 @@ function characterFeedback(
   const normalizedSpeaker = speaker.toLowerCase();
   if (normalizedSpeaker === "snarger")
     return choose(correct ? snargerCorrectPhrases : snargerWrongPhrases, seed);
-  if (normalizedSpeaker === "hannah") return correct ? "Whatever." : "";
+  if (normalizedSpeaker === "hannah")
+    return choose(correct ? hannahCorrectPhrases : hannahWrongPhrases, seed >>> 1);
   return choose(correct ? nerdCorrectPhrases : nerdWrongPhrases, seed);
 }
 
