@@ -1204,8 +1204,9 @@ p {
 }
 .battle-footer:has(.battle-result-panel) { gap: 8px; }
 .battle-result-panel {
+  position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 3cm;
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   gap: 6px;
   flex: 1;
@@ -1219,7 +1220,7 @@ p {
   transform-origin: center;
 }
 .battle-result-panel[data-grade-stamped="true"] { animation: result-panel-shake 260ms linear; }
-.result-reward-column { display: flex; flex-direction: column; min-width: 0; gap: 3px; }
+.result-reward-column { display: flex; flex-direction: column; min-width: 0; gap: 3px; padding-right: 7cm; }
 .result-reward-column h2 { color: #465731; font-size: 22px !important; line-height: 1.1; }
 .result-score { color: #6c604c; font-size: 17px !important; }
 .result-rewards { display: flex; flex-direction: column; gap: 2px; min-height: 0; }
@@ -1249,10 +1250,11 @@ p {
 .reward-xp .result-reward-value { color: #236dd1; }
 .reward-defeated .result-reward-value { color: #47753a; }
 .result-wave-letter { display: inline-block; font-size: 40px !important; animation: result-value-wave 900ms ease-in-out both; }
-.result-grade-seal { position: relative; display: grid; width: 3cm; height: 3cm; place-items: center; transform: rotate(-20deg); transform-origin: center; opacity: 0; }
+.result-grade-seal { position: absolute; right: 10px; bottom: 10px; display: grid; width: 7cm; height: 7cm; place-items: center; transform: rotate(-20deg); transform-origin: center; opacity: 0; }
 .result-grade-seal.stamped { animation: grade-stamp 660ms cubic-bezier(.16,.8,.23,1.2) forwards; }
-.result-grade-seal img { width: 3cm; height: 3cm; object-fit: contain; }
-.result-grade-fallback { display: grid; width: 2.7cm; height: 2.7cm; place-items: center; border: 4px double #792d27; border-radius: 50%; color: #9d342c; background: #f3dfbd; font: 900 68px/1 Rubik_900Black; }
+.result-grade-seal img { width: 7cm; height: 7cm; object-fit: contain; }
+.result-grade-fallback { display: grid; width: 6.3cm; height: 6.3cm; place-items: center; border: 4px double #792d27; border-radius: 50%; color: #9d342c; background: #f3dfbd; font: 900 150px/1 Rubik_900Black; }
+body .battle-result-panel .result-grade-fallback { font-size: 150px !important; }
 .result-grade-seal.stamped { filter: drop-shadow(0 0 12px #ffd76b); }
 .result-grade-glimmer { position: absolute; inset: 0; background: linear-gradient(110deg, transparent 28%, #ffffff00 38%, #fff8db 50%, #ffffff00 62%, transparent 72%); background-size: 250% 100%; mask-size: contain; mask-position: center; mask-repeat: no-repeat; -webkit-mask-size: contain; -webkit-mask-position: center; -webkit-mask-repeat: no-repeat; pointer-events: none; animation: grade-glimmer 1.6s ease-out both; }
 @keyframes result-icon-pop {
@@ -1335,9 +1337,9 @@ body .battle-header {
   body .quiz-feedback h2, body .quiz-feedback h2 .correct-wave-letter { font-size: 60px !important; }
   .feedback-explanation { padding: 12px; }
   .battle-result-panel { padding: 7px; }
-  .result-grade-seal { width: 3cm; height: 3cm; }
-  .result-grade-seal img { width: 3cm; height: 3cm; }
-  .result-grade-fallback { width: 2.7cm; height: 2.7cm; font-size: 68px !important; }
+  .result-grade-seal { width: 7cm; height: 7cm; }
+  .result-grade-seal img { width: 7cm; height: 7cm; }
+  .result-grade-fallback { width: 6.3cm; height: 6.3cm; font-size: 150px !important; }
   .battle-screen:has(.battle-result-panel) { grid-template-rows: minmax(140px, 38%) minmax(0, 1fr); }
 }
 body .quiz-feedback h2, body .quiz-feedback h2 .correct-wave-letter { font-size: 60px !important; }

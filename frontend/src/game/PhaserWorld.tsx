@@ -323,7 +323,7 @@ export function PhaserWorld({
           key: "nerd-well-actually",
           frames: framesFor("nerd-well-actually", nerdAttackAtlas),
           frameRate: 12,
-          repeat: 0,
+          repeat: 1,
         });
         this.scenery = layers.map(() => []);
         this.heroShadow = this.add
@@ -368,6 +368,8 @@ export function PhaserWorld({
               this.sync();
             },
             skipToNextEncounter: () => {
+              this.loot.clear();
+              this.dropped = true;
               model.skipToNextEncounter();
               this.sync();
             },
@@ -565,7 +567,7 @@ export function PhaserWorld({
       ) {
         if (this.heroAttacking) return;
         this.heroAttacking = true;
-        this.playOlanAttack(() => {
+        this.playOlanAttack(this.enemies[0], () => {
           this.heroAttacking = false;
           this.syncHeroAnimation();
           const enemy = this.enemies[0];
@@ -589,7 +591,10 @@ export function PhaserWorld({
         });
         playCharacterAttackSound("olan", OLAN_ATTACK_SOUND_DELAY_MS);
       }
-      private playOlanAttack(onComplete: () => void) {
+      private playOlanAttack(
+        target: Phaser.GameObjects.Sprite | undefined,
+        onComplete: () => void,
+      ) {
         const image = this.olanAttackImage;
         const context = this.olanAttackContext;
         const texture = this.olanAttackTexture;
@@ -620,6 +625,7 @@ export function PhaserWorld({
             frame.h,
           );
           texture.refresh();
+          if (frameIndex === 6 && target?.active) this.playPlayerBeam(target);
         };
         this.hero.anims.stop();
         this.hero
@@ -650,6 +656,179 @@ export function PhaserWorld({
           onComplete();
         });
       }
+      private playPlayerBeam(target: Phaser.GameObjects.Sprite) {
+        const playerBounds = this.hero.getBounds();
+        const startX = playerBounds.left + playerBounds.width * 0.78;
+        const endX = target.x - target.displayWidth * 0.28;
+        const centerY = playerBounds.centerY;
+        const length = Math.max(0, endX - startX);
+        if (length === 0) return;
+        const beam = this.add.container((startX + endX) / 2, centerY)
+          .setDepth(FOREGROUND_DEPTH + 2)
+          .setBlendMode(Phaser.BlendModes.ADD);
+        const glow = this.add.graphics();
+        glow.fillStyle(0x168bff, 0.8).fillRoundedRect(-length / 2, -30, length, 60, 30);
+        glow.fillStyle(0x65caff, 0.95).fillRoundedRect(-length / 2, -16, length, 32, 16);
+        glow.fillStyle(0xc9f5ff, 1).fillRoundedRect(-length / 2, -8, length, 16, 8);
+        glow.fillStyle(0xffffff, 1).fillRoundedRect(-length / 2, -3, length, 6, 3);
+        beam.add(glow);
+        beam.setScale(1, 0.2).setAlpha(0);
+        this.tweens.add({
+          targets: beam,
+          scaleY: 1.15,
+          duration: 87.5,
+          yoyo: true,
+          repeat: 3,
+          ease: "Sine.InOut",
+        });
+        this.tweens.add({
+          targets: beam,
+          alpha: 1,
+          duration: 350,
+          yoyo: true,
+          ease: "Sine.InOut",
+          onComplete: () => beam.destroy(),
+        });
+      }
+      private flashHannah(enemy: Phaser.GameObjects.Sprite) {
+        const width = this.scale.width;
+        const height = this.scale.height;
+        const centerY = enemy.y - enemy.displayHeight * 0.52;
+        const spread = height * 0.34;
+        const shift = width * 0.11;
+        const flash = this.add.graphics().setDepth(FOREGROUND_DEPTH + 1);
+        flash.fillStyle(0x000000, 1).fillRect(0, 0, width, height);
+        flash.fillStyle(0xffffff, 1).fillPoints(
+          [
+            { x: -width, y: centerY - spread - shift },
+            { x: -width, y: centerY + spread - shift },
+            { x: enemy.x - 8, y: centerY + 12 },
+            { x: enemy.x - 8, y: centerY - 12 },
+          ],
+          true,
+        );
+        const enemyDepth = enemy.depth;
+        const heroDepth = this.hero.depth;
+        enemy.setDepth(FOREGROUND_DEPTH + 3).setTintFill(0xffffff);
+        this.hero.setDepth(FOREGROUND_DEPTH + 3).setTintFill(0x000000);
+        this.time.delayedCall(1000 / 12, () => {
+          flash.destroy();
+          if (enemy.active) enemy.setDepth(enemyDepth).clearTint();
+          if (this.hero.active) this.hero.setDepth(heroDepth).clearTint();
+        });
+      }
+      private emitMathSymbols(enemy: Phaser.GameObjects.Sprite) {
+        const symbols = [
+          "%", "+", "-", "÷", "×", "π", "sin()", "cos()", "∫", "√",
+          "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+          "x", "y", "α", "β", "θ", "λ", "μ", "Ω", "∞", "=",
+        ];
+        const playerBounds = this.hero.getBounds();
+        const originX = enemy.x - enemy.displayWidth * 0.25;
+        const originY = enemy.y - enemy.displayHeight * 0.55;
+        const targetX = playerBounds.centerX;
+        const targetY = playerBounds.centerY;
+        const baseAngle = Math.atan2(targetY - originY, targetX - originX);
+        for (let count = 0; count < 2; count++) {
+          const symbol = symbols[Math.floor(Math.random() * symbols.length)];
+          const angle = baseAngle + Phaser.Math.DegToRad(
+            Phaser.Math.Between(-30, 30) / 10,
+          );
+          const distance = Phaser.Math.Distance.Between(
+            originX,
+            originY,
+            targetX,
+            targetY,
+          );
+          const text = this.add.text(
+            originX + Phaser.Math.Between(-12, 12),
+            originY + Phaser.Math.Between(-24, 24),
+            symbol,
+            {
+              fontFamily: "Arial",
+              fontSize: "40px",
+              color: "#e7a0ff",
+              stroke: "#6815a8",
+              strokeThickness: 2,
+            },
+          )
+            .setOrigin(0.5)
+            .setDepth(FOREGROUND_DEPTH + 2)
+            .setBlendMode(Phaser.BlendModes.ADD)
+            .setShadow(0, 0, "#bb43ff", 12, true, true);
+          const travel = Math.max(20, distance);
+          this.tweens.add({
+            targets: text,
+            x: text.x + Math.cos(angle) * travel,
+            y: text.y + Math.sin(angle) * travel,
+            alpha: 0,
+            rotation: Phaser.Math.FloatBetween(-0.5, 0.5),
+            duration: Phaser.Math.Between(650, 950),
+            ease: "Cubic.Out",
+            onComplete: () => text.destroy(),
+          });
+        }
+      }
+      private playSnargerZap(enemy: Phaser.GameObjects.Sprite, onComplete: () => void) {
+        const graphics = this.add.graphics()
+          .setDepth(FOREGROUND_DEPTH + 2)
+          .setBlendMode(Phaser.BlendModes.ADD);
+        const bubble = this.add.graphics()
+          .setDepth(FOREGROUND_DEPTH + 1)
+          .setBlendMode(Phaser.BlendModes.ADD);
+        const heroDepth = this.hero.depth;
+        this.hero.setDepth(FOREGROUND_DEPTH + 1.5);
+        const startX = enemy.x - enemy.displayWidth * 0.24;
+        const startY = enemy.y - enemy.displayHeight * 0.52;
+        const endX = this.hero.x + this.hero.displayWidth * 0.22;
+        const endY = this.hero.y - this.hero.displayHeight * 0.5;
+        let elapsed = 0;
+        const drawBolt = () => {
+          graphics.clear();
+          const points: Phaser.Geom.Point[] = [
+            new Phaser.Geom.Point(startX, startY),
+          ];
+          const segments = 12;
+          for (let index = 1; index < segments; index++) {
+            const progress = index / segments;
+            points.push(new Phaser.Geom.Point(
+              Phaser.Math.Linear(startX, endX, progress) +
+                Phaser.Math.Between(-13, 13),
+              Phaser.Math.Linear(startY, endY, progress) +
+                Phaser.Math.Between(-15, 15),
+            ));
+          }
+          points.push(new Phaser.Geom.Point(endX, endY));
+          graphics.lineStyle(16, 0xffe66b, 0.16).strokePoints(points);
+          graphics.lineStyle(8, 0xfff3ad, 0.48).strokePoints(points);
+          graphics.lineStyle(3, 0xffffff, 1).strokePoints(points);
+        };
+        drawBolt();
+        this.time.addEvent({
+          delay: 45,
+          repeat: 10,
+          callback: () => {
+            elapsed += 45;
+            drawBolt();
+            if (elapsed >= 270) {
+              bubble.clear();
+              bubble.fillStyle(0xfff5a6, 0.2)
+                .fillCircle(this.hero.x, endY, this.hero.displayWidth * 0.6);
+              bubble.lineStyle(5, 0xfff08a, 0.9)
+                .strokeCircle(this.hero.x, endY, this.hero.displayWidth * 0.6);
+              bubble.lineStyle(2, 0xffffff, 1)
+                .strokeCircle(this.hero.x, endY, this.hero.displayWidth * 0.48);
+              this.hero.setTintFill(0xffffc2);
+            }
+          },
+        });
+        this.time.delayedCall(500, () => {
+          graphics.destroy();
+          bubble.destroy();
+          if (this.hero.active) this.hero.setDepth(heroDepth).clearTint();
+          onComplete();
+        });
+      }
       private attackEnemy(damage: number, onComplete: () => void) {
         const enemy = this.enemies[0];
         const name = model.encounter?.name as keyof typeof ENEMY_ASSETS | undefined;
@@ -662,10 +841,27 @@ export function PhaserWorld({
           if (enemy.active) enemy.play(character.idle);
           this.showImpact(this.hero, DAMAGE_COLORS.olan, damage, false, onComplete);
         };
-        if (character.attack) {
+        if (name === "Snarger") {
+          this.playSnargerZap(enemy, strike);
+        } else if (character.attack) {
+          const onAnimationUpdate = (
+            _animation: Phaser.Animations.Animation,
+            frame: Phaser.Animations.AnimationFrame,
+          ) => {
+            if (name === "Hannah") {
+              const frames = Object.keys(hannahAttackAtlas.frames).sort();
+              if (frame.textureFrame === frames[7]) this.flashHannah(enemy);
+            } else if (name === "Nerdius") {
+              this.emitMathSymbols(enemy);
+            }
+          };
+          enemy.on("animationupdate", onAnimationUpdate);
+          enemy.once("animationcomplete", () => {
+            enemy.off("animationupdate", onAnimationUpdate);
+            strike();
+          });
           enemy.play(character.attack);
           if (name === "Hannah") playCharacterAttackSound("hannah");
-          enemy.once("animationcomplete", strike);
         } else {
           this.tweens.add({
             targets: enemy,
@@ -689,7 +885,6 @@ export function PhaserWorld({
         const scaleY = target.scaleY;
         const knockback = target === this.hero ? -14 : 14;
         target.setTintFill(0xffffff);
-        if (target !== this.hero) playDamageHitSound();
         const particles = this.add.particles(x, y - target.displayHeight * 0.55, "impact-dot", {
           speed: { min: 60, max: 150 },
           angle: { min: 205, max: 335 },
@@ -728,6 +923,9 @@ export function PhaserWorld({
           scaleY: scaleY * 0.84,
           duration: 110,
           yoyo: true,
+          onStart: () => {
+            if (target === this.hero) playDamageHitSound();
+          },
           onComplete: () => {
             if (target.active) target.clearTint();
             if (defeated) {

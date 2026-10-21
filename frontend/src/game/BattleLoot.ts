@@ -80,9 +80,10 @@ export class BattleLoot {
     return { count: this.pieces.length - this.collected, phase: this.pieces.length === 0 || this.collected === this.pieces.length ? "empty" : this.walking > 1.1 ? "collecting" : this.age < 1 ? "burst" : "ground" };
   }
 
-  private clear() {
+  clear() {
     this.pieces.forEach(({ image, shadow }) => { image.destroy(); shadow.destroy(); });
     this.pieces = [];
+    this.collected = 0;
     this.trails.clear();
   }
 }

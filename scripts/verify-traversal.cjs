@@ -54,6 +54,20 @@ assert.deepEqual(counts, [1, 1, 1, 1, 1], "one monster per encounter, continues 
 assert.equal(game.state, "result");
 assert.equal(game.cleared, 5, "duplicate completion ignored");
 assert(game.distance > stoppedAt, "final kill walks while collecting before result");
+const shuffled = new FantasyGame(780);
+const names = [];
+for (let i = 0; i < 7; i++) {
+  shuffled.triggerEncounter();
+  advance(shuffled, 2);
+  assert.equal(shuffled.state, "encounter");
+  names.push(shuffled.encounter.name);
+  shuffled.completeEncounter();
+  advance(shuffled, WORLD.completeSeconds + 0.1);
+  assert.equal(shuffled.state, "walking");
+}
+assert.equal(new Set(names.slice(0, 3)).size, SAVANNAH_ENEMIES.size, "each monster appears once in the first shuffled cycle");
+assert.equal(new Set(names.slice(3, 6)).size, SAVANNAH_ENEMIES.size, "each monster appears once in the next shuffled cycle");
+assert.notEqual(names[2], names[3], "the next cycle does not immediately repeat the previous monster");
 const skippable = new FantasyGame(780);
 advance(skippable, WORLD.walkSeconds + WORLD.revealSeconds + 0.1);
 assert.equal(skippable.state, "encounter");

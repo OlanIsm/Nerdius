@@ -1,6 +1,6 @@
 import { ChunkManager } from "./ChunkManager";
 import { encounters, SAVANNAH_ENEMIES, WORLD } from "./level";
-import { GameState, type GamePhase, type ActiveEncounter } from "./types";
+import { GameState, type GamePhase, type ActiveEncounter, type SavannahEnemy } from "./types";
 
 const transitions: Record<GamePhase, readonly GamePhase[]> = {
   walking: [GameState.encounterStarting, GameState.result],
@@ -28,6 +28,8 @@ export class FantasyGame {
   private elapsed = 0;
   private debugStop: number | null = null;
   private nextEncounter = 0;
+  private enemiesRemaining: SavannahEnemy[] = [];
+  private lastEnemy: SavannahEnemy | null = null;
 
   constructor(height: number) {
     this.playerY = height * WORLD.playerRatio;
@@ -63,9 +65,28 @@ export class FantasyGame {
     this.revision++;
   }
 
+  private nextEnemyName(): SavannahEnemy {
+    if (this.enemiesRemaining.length === 0) {
+      const shuffled: SavannahEnemy[] = [...SAVANNAH_ENEMIES];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      const lastIndex = shuffled.length - 1;
+      if (shuffled.length > 1 && shuffled[lastIndex] === this.lastEnemy) {
+        [shuffled[0], shuffled[lastIndex]] = [shuffled[lastIndex], shuffled[0]];
+      }
+      this.enemiesRemaining = shuffled;
+    }
+
+    const name = this.enemiesRemaining.pop();
+    if (!name) throw new Error("No enemies available for encounter");
+    this.lastEnemy = name;
+    return name;
+  }
+
   private beginEncounter(spawn?: Pick<ActiveEncounter, "count" | "boss">) {
-    const name =
-      SAVANNAH_ENEMIES[Math.floor(Math.random() * SAVANNAH_ENEMIES.length)];
+    const name = this.nextEnemyName();
     this.encounter = spawn
       ? { ...spawn, name, count: 1, debug: false }
       : { count: 1, boss: false, name, debug: true };
