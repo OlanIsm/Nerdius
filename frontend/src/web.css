@@ -382,41 +382,52 @@ p {
   outline-offset: 3px;
 }
 .chapter-stop {
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  min-height: 88px;
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 54px;
   display: grid;
-  grid-template-columns: 72px 44px minmax(0, 1fr);
+  grid-template-columns: 46px 30px minmax(0, 1fr);
   gap: 6px;
   align-items: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  padding: 2px 0;
 }
 .chapter-stop.reverse {
-  grid-template-columns: minmax(0, 1fr) 44px 72px;
+  grid-template-columns: minmax(0, 1fr) 30px 46px;
 }
 .chapter-island {
   grid-column: 1;
   grid-row: 1;
-  width: 72px;
-  height: 72px;
-  object-fit: contain;
+  width: 46px;
+  height: 46px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 2px solid #b78a48;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
 }
+body .chapter-node,
 .chapter-node {
   grid-column: 2;
   grid-row: 1;
-  width: 42px;
-  height: 42px;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   border: 2px solid #5b350f;
-  border-bottom-width: 4px;
+  border-bottom-width: 3px;
   border-radius: 50%;
-  font: 20px Rubik_900Black;
+  font-family: Rubik_900Black, Rubik, sans-serif !important;
+  font-size: 14.5px !important;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
 .chapter-node.unfinished {
-  background: linear-gradient(#704628, #422713);
+  background: linear-gradient(135deg, #704628 0%, #422713 100%);
   color: #fff0ce;
 }
 .chapter-node.current {
@@ -452,37 +463,31 @@ p {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: stretch;
-  max-width: 280px;
-  min-height: 66px;
-  border: 1px solid #bd9255;
+  min-height: 56px;
+  border: 1.5px solid #bd9255;
   border-bottom-width: 3px;
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
-  background: #fff4dcf5;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   text-align: left;
 }
 .chapter-card.selected {
   border-color: #704621;
 }
 .chapter-card.current {
-  background: linear-gradient(135deg, #fff2ad 0%, #ffe072 45%, #f7cb55 100%);
-  border-color: #a46f14;
-  border-bottom-width: 4px;
-  box-shadow: 0 4px 12px #f4c35b66, 0 0 8px #ffd24d55;
+  background: linear-gradient(135deg, #fffbee 0%, #fff2b8 50%, #ffe68a 100%);
+  border: 2px solid #e5a519;
+  border-bottom-width: 3.5px;
+  box-shadow: 0 3px 10px rgba(244, 195, 91, 0.45), 0 0 8px rgba(255, 210, 77, 0.35);
   animation: current-chapter-bounce 1.8s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite;
   transform-origin: center bottom;
 }
 .chapter-card.current .chapter-meta {
-  color: #7a4e0a;
+  color: #7a4e0a !important;
 }
 .chapter-card.current .chapter-title {
-  color: #382006;
-}
-.chapter-card.current .chapter-status {
-  background: linear-gradient(135deg, #f5a91f 0%, #df8b09 100%);
-  color: #fff9e6;
-  border-left: 1px solid #b67c1c;
-  font-weight: bold;
+  color: #382006 !important;
 }
 @keyframes current-chapter-bounce {
   0%, 100% {
@@ -513,41 +518,79 @@ p {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 5px;
-  padding: 8px;
+  gap: 2px;
+  padding: 4px 6px;
   min-width: 0;
 }
+body .expedition-page .chapter-meta,
+body .chapter-card .chapter-meta,
 .chapter-meta {
-  font: 9px/13px SpaceGrotesk_700Bold;
-  color: #765024;
+  font-family: SpaceGrotesk_700Bold, sans-serif !important;
+  font-size: 10px !important;
+  line-height: 13px !important;
+  color: #764f22 !important;
+  white-space: nowrap;
 }
+body .expedition-page .chapter-title,
+body .chapter-card .chapter-title,
 .chapter-title {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  display: block;
   overflow: hidden;
-  font: 13px/17px Rubik_700Bold;
-  color: #352316;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-family: Rubik_700Bold, Rubik, sans-serif !important;
+  font-size: 13px !important;
+  line-height: 16px !important;
+  color: #321c0b !important;
 }
+body .expedition-page .chapter-status,
+body .chapter-card .chapter-status,
 .chapter-status {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px;
+  gap: 3px;
+  padding: 4px 8px;
   background: #ead1ac;
   border-left: 1px solid #c7a779;
-  font: 9px/13px SpaceGrotesk_700Bold;
+  font-family: SpaceGrotesk_700Bold, sans-serif !important;
+  font-size: 10px !important;
+  line-height: 13px !important;
   color: #563716;
+  min-width: 60px;
+  box-sizing: border-box;
+}
+body .expedition-page .chapter-node,
+body .chapter-stop .chapter-node,
+.chapter-node {
+  font-family: Rubik_900Black, Rubik, sans-serif !important;
+  font-size: 16px !important;
+}
+.chapter-status .status-glyph {
+  font-size: 12px !important;
+  font-weight: 900 !important;
 }
 .chapter-status.completed {
-  background: #f8d78c;
+  background: linear-gradient(180deg, #f8d78c 0%, #ebb94b 100%);
+  color: #432608;
+  border-left: 1.5px solid #b8861e;
 }
 .chapter-status.current {
-  background: linear-gradient(135deg, #ffe082 0%, #f4c35b 100%);
-  color: #432608;
-  border-left: 1px solid #c98b2c;
+  background: linear-gradient(180deg, #fbb825 0%, #e89107 100%);
+  color: #ffffff !important;
+  border-left: 1.5px solid #c97d05;
   font-weight: bold;
+  text-shadow: 0 1px 2px rgba(80, 40, 0, 0.6);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.6);
+}
+.chapter-status.current .status-glyph,
+.chapter-status.current .status-label {
+  color: #ffffff !important;
+}
+.chapter-status.available {
+  background: #ece4d4;
+  color: #6d5b45;
+  border-left: 1.5px solid #cbbeab;
 }
 .chapter-stop.reverse .chapter-island {
   grid-column: 3;
@@ -555,6 +598,298 @@ p {
 .chapter-stop.reverse .chapter-card {
   grid-column: 1;
   justify-self: end;
+}
+
+/* ==================== EXPEDITION PAGE (FANTASY SCENERY & RUSTIC RPG FRAMES) ==================== */
+.expedition-page {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 10px 12px 28px;
+  box-sizing: border-box;
+  background: url("/assets/background/hub_wallpaper.webp") no-repeat center top / cover;
+  min-height: 100%;
+}
+
+/* 1. "Your Expeditions" Banner */
+.css-expeditions-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: linear-gradient(180deg, #fffaf0 0%, #f7ecd2 60%, #eed5a1 100%);
+  border: 2px solid #a87941;
+  border-radius: 14px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18), inset 0 1px 2px rgba(255, 255, 255, 0.7);
+}
+.banner-scroll-icon {
+  font-size: 26px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+.banner-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+body .expedition-page .banner-title,
+.banner-title {
+  font-family: var(--game-font-family), Rubik, sans-serif !important;
+  font-size: 17px !important;
+  font-weight: 900 !important;
+  color: #351c05 !important;
+  letter-spacing: 0.3px;
+}
+body .expedition-page .banner-subtitle,
+.banner-subtitle {
+  font-family: var(--game-font-family), sans-serif !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #6f471e !important;
+  line-height: 1.35 !important;
+}
+
+/* 2. Current Expedition Dark Wood Selector Pill */
+.css-expedition-selector-pill {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #42220b 0%, #2a1203 100%);
+  border: 2px solid #6b3e18;
+  border-bottom: 3.5px solid #1c0a01;
+  border-radius: 16px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35), inset 0 1px 2px rgba(255, 200, 120, 0.25);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.1s ease;
+}
+.css-expedition-selector-pill:active {
+  transform: translateY(2px);
+}
+.pill-tome-icon {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+.pill-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+.pill-category {
+  font-family: var(--game-font-family), sans-serif;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  color: #d4a964;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+.pill-title {
+  font-family: var(--game-font-family), Rubik, sans-serif;
+  font-size: 15.5px !important;
+  font-weight: 900 !important;
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pill-chevron {
+  font-size: 24px;
+  font-weight: 900;
+  color: #d4a964;
+}
+
+/* Expedition Choices when > 1 */
+.css-expedition-choice-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: #e2cca6;
+  border: 2px solid #9e7343;
+  border-bottom: 3px solid #754f24;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+.css-expedition-choice-btn.active {
+  background: #54331a;
+  border-color: #ffd875;
+  border-bottom-color: #351a07;
+}
+.css-expedition-choice-btn .choice-text {
+  font-family: var(--game-font-family), Rubik, sans-serif;
+  font-size: 12.5px !important;
+  font-weight: 800 !important;
+  color: #452408;
+}
+.css-expedition-choice-btn.active .choice-text {
+  color: #fff4d4;
+}
+
+/* 3. Section Breadcrumb */
+.css-expedition-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 4px;
+}
+.breadcrumb-leaf {
+  font-size: 18px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+.breadcrumb-text {
+  font-family: var(--game-font-family), Rubik, sans-serif;
+  font-size: 14.5px !important;
+  font-weight: 900 !important;
+  color: #2d1603;
+  letter-spacing: 0.2px;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.4);
+}
+
+/* 4. Grand Wooden Board with Map Frame */
+.css-expedition-map-board {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #572d11 0%, #3e1b07 100%);
+  border: 3.5px solid #78441c;
+  border-radius: 18px;
+  padding: 10px 8px;
+  box-shadow: inset 0 2px 4px rgba(255, 200, 130, 0.3), 0 6px 16px rgba(18, 12, 6, 0.45);
+}
+.css-expedition-parchment-map {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 8px;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: #c88d47;
+  background-size: cover;
+  background-position: center;
+  border: 2px solid #824f21;
+  box-shadow: inset 0 0 16px rgba(115, 65, 20, 0.3);
+}
+.compass-rose-watermark {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 5. Chapter Detail / Briefing Card */
+.css-chapter-briefing-card {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px 14px 12px;
+  background: linear-gradient(180deg, #fffcf3 0%, #fbedd1 55%, #ecdab0 100%);
+  border: 2.5px solid #824f21;
+  border-radius: 16px;
+  box-shadow: 0 6px 14px rgba(25, 14, 5, 0.25), inset 0 0 12px rgba(130, 80, 30, 0.12);
+  gap: 12px;
+}
+.briefing-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.briefing-flag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: #e8d5b5;
+  border: 1.5px solid #b38b59;
+  border-radius: 20px;
+  font-family: var(--game-font-family), Rubik, sans-serif;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  color: #452408;
+}
+.briefing-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-family: var(--game-font-family), Rubik, sans-serif;
+  font-size: 11.5px !important;
+  font-weight: 800 !important;
+}
+.briefing-status-badge.current {
+  background: linear-gradient(180deg, #fbb825 0%, #e89107 100%);
+  color: #ffffff;
+  border: 1.5px solid #c97d05;
+  box-shadow: 0 2px 5px rgba(200, 100, 0, 0.3);
+}
+.briefing-status-badge.available {
+  background: #e4d8c2;
+  color: #6d5b45;
+  border: 1.5px solid #bfb199;
+}
+.briefing-status-badge.completed {
+  background: linear-gradient(180deg, #f8d78c 0%, #ebb94b 100%);
+  color: #3b2006;
+  border: 1.5px solid #b8861e;
+}
+.briefing-body-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.briefing-icon-box {
+  width: 58px;
+  height: 58px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  border: 2px solid #86efac;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 20px;
+  box-shadow: 0 3px 6px rgba(22, 101, 52, 0.2);
+}
+.briefing-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+body .expedition-page .briefing-title,
+.briefing-title {
+  font-family: var(--game-font-family), Rubik, sans-serif !important;
+  font-size: 16px !important;
+  font-weight: 900 !important;
+  color: #2e1603 !important;
+}
+body .expedition-page .briefing-summary,
+.briefing-summary {
+  font-family: var(--game-font-family), sans-serif !important;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+  color: #472b12 !important;
+}
+body .expedition-page .briefing-meta,
+.briefing-meta {
+  font-family: var(--game-font-family), sans-serif !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #764f23 !important;
+  margin-top: 2px;
 }
 .page-scroll,
 .scroll {
@@ -728,8 +1063,7 @@ p {
   gap: 22px;
   padding: 12px 12px 32px;
   box-sizing: border-box;
-  background: url("/assets/background/hub_wallpaper.webp") no-repeat center top / cover;
-  background-attachment: local;
+  background: transparent;
   min-height: 100%;
 }
 

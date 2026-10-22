@@ -1,13 +1,14 @@
 import type { CSSProperties } from "react";
 import { useState } from "react";
 import { mapArt } from "../assets";
-import { Badge, Button, Icon } from "../components/GameUI";
+import { Button, Icon } from "../components/GameUI";
+import type { IconName } from "../components/GameUI";
 import {
   AdventurePath,
   chapterState,
   currentChapter,
 } from "../components/AdventurePath";
-import { RealmFrame, RealmButton, fantasy } from "../components/FantasyUI";
+import { RealmFrame, RealmButton } from "../components/FantasyUI";
 import { colors, fonts, ui } from "../theme";
 import type { Expedition, Region } from "../modules/game/types";
 import { expeditions } from "../modules/game/tutorial";
@@ -28,70 +29,82 @@ export function AdventureScreen({
   const expedition = items[Math.min(active, items.length - 1)];
   const selectedRegion =
     expedition.regions[Math.min(chapter, expedition.regions.length - 1)];
+  const isTutorial =
+    expedition.id === "tutorial" ||
+    expedition.title.toLowerCase().includes("tutorial");
+  const cleanTitle = expedition.title.replace(/^Tutorial\s*[—–-]\s*/i, "");
+
   return (
-    <div style={s.page} className="stack">
-      <div style={s.pageHeading} className="stack">
-        <span style={fantasy.title} className="text">
-          Your Expeditions
-        </span>
-      </div>
-      <div aria-label="Choose study material" className="scroll horizontal">
-        <div className="stack horizontal-content" style={s.scrollChoices}>
-          {items.map((item, index) => (
-            <button
-              key={item.file}
-              role="button"
-              aria-label={`Select ${item.title}`}
-              aria-pressed={active === index}
-              onClick={() => {
-                setActive(index);
-                setChapter(currentChapter(item.progress, item.regions.length));
-              }}
-              style={{
-                ...s.scrollChoice,
-                ...((active === index && s.activeChoice) || {}),
-              }}
-              className="stack pressable"
-              type="button"
-            >
-              <Icon
-                name="book-open-page-variant-outline"
-                size={21}
-                color={active === index ? colors.parchment : "#54331a"}
-              />
-              <span
-                style={{
-                  ...s.choiceText,
-                  ...(active === index
-                    ? { color: colors.parchment }
-                    : { color: "#45260f" }),
-                }}
-                className="text"
-              >
-                {item.title}
-              </span>
-            </button>
-          ))}
+    <div className="expedition-page stack">
+      {/* 1. "Your Expeditions" Parchment Banner */}
+      <div className="css-expeditions-banner">
+        <div className="banner-scroll-icon" aria-hidden="true">📜</div>
+        <div className="banner-copy stack">
+          <span className="banner-title text">Your Expeditions</span>
+          <span className="banner-subtitle text">
+            Complete quests, gain knowledge, and level up!
+          </span>
         </div>
       </div>
+
+      {/* 2. Current Expedition Dark Wood Selector Pill */}
       <button
         role="button"
         aria-label={`Open ${expedition.title}`}
         onClick={() => onSelect(expedition)}
-        style={s.expeditionHeading}
-        className="stack pressable"
+        className="css-expedition-selector-pill pressable"
         type="button"
       >
-        <div style={ui.flex} className="stack">
-          <span style={s.expeditionTitle} className="text">
-            {expedition.title}
-          </span>
-          <span style={ui.label} className="text">
-            {expedition.file}
-          </span>
+        <div className="pill-tome-icon" aria-hidden="true">
+          <Icon name="book-open-page-variant-outline" size={24} color="#ffd480" />
         </div>
-
+        <div className="pill-copy stack">
+          <span className="pill-category text">
+            {isTutorial ? "Tutorial" : "Expedition"}
+          </span>
+          <span className="pill-title text">{isTutorial ? cleanTitle : expedition.title}</span>
+        </div>
+        <span className="pill-chevron text" aria-hidden="true">›</span>
       </button>
+
+      {/* Multiple Expeditions Selector (when > 1 study material exists) */}
+      {items.length > 1 && (
+        <div aria-label="Choose study material" className="scroll horizontal">
+          <div className="stack horizontal-content" style={s.scrollChoices}>
+            {items.map((item, index) => (
+              <button
+                key={item.file}
+                role="button"
+                aria-label={`Select ${item.title}`}
+                aria-pressed={active === index}
+                onClick={() => {
+                  setActive(index);
+                  setChapter(currentChapter(item.progress, item.regions.length));
+                }}
+                className={`css-expedition-choice-btn pressable ${active === index ? "active" : ""}`}
+                type="button"
+              >
+                <Icon
+                  name="book-open-page-variant-outline"
+                  size={18}
+                  color={active === index ? "#fff4d4" : "#6c401c"}
+                />
+                <span className="choice-text text">{item.title}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 3. Breadcrumb Row with Leaf Icon */}
+      <div className="css-expedition-breadcrumb">
+        <span className="breadcrumb-leaf" aria-hidden="true">🍃</span>
+        <span className="breadcrumb-text text">
+          {isTutorial ? `Tutorial — ${cleanTitle}` : `Expedition — ${expedition.title}`}
+        </span>
+      </div>
+
+      {/* 4. Grand Wooden Board with Parchment Map Frame */}
       <AdventurePath
         chapters={expedition.regions}
         progress={expedition.progress}
@@ -105,40 +118,56 @@ export function AdventureScreen({
           onInspect();
         }}
       />
-      <RealmFrame style={s.selectedChapter}>
-        <div style={ui.between} className="stack">
-          <Badge
-            text={`Chapter ${selectedRegion.chapter}`}
-            icon="flag-variant"
-          />
-          <span style={s.stateText} className="text">
-            {chapterState(
+
+      {/* 5. Chapter Detail / Briefing Card */}
+      <div className="css-chapter-briefing-card stack">
+        <div className="briefing-header-row">
+          <div className="briefing-flag-pill">
+            <span className="flag-icon" aria-hidden="true">🚩</span>
+            <span className="chapter-label text">Chapter {selectedRegion.chapter}</span>
+          </div>
+          <div
+            className={`briefing-status-badge ${chapterState(
               expedition.progress,
               expedition.regions.length,
               chapter,
-            )}
-          </span>
+            ).toLowerCase()}`}
+          >
+            <span className="text">
+              {chapterState(
+                expedition.progress,
+                expedition.regions.length,
+                chapter,
+              )}
+            </span>
+          </div>
         </div>
-        <span style={ui.heading} className="text">
-          {selectedRegion.title}
-        </span>
-        <span style={ui.body} className="text">
-          {selectedRegion.summary}
-        </span>
-        <span style={ui.label} className="text">
-          {selectedRegion.questions} questions · Up to {selectedRegion.enemies}{" "}
-          enemies
-        </span>
+
+        <div className="briefing-body-row">
+          <div className="briefing-icon-box" aria-hidden="true">
+            <span className="topic-sun">☀️</span>
+            <span className="topic-sprout">🌱</span>
+          </div>
+          <div className="briefing-copy stack">
+            <span className="briefing-title text">{selectedRegion.title}</span>
+            <span className="briefing-summary text">{selectedRegion.summary}</span>
+            <span className="briefing-meta text">
+              {selectedRegion.questions} questions · Up to {selectedRegion.enemies} enemies
+            </span>
+          </div>
+        </div>
+
         <Button
           label="View chapter"
           icon="arrow-right"
           tone="gold"
           onPress={() => onSelect(expedition, selectedRegion)}
         />
-      </RealmFrame>
+      </div>
     </div>
   );
 }
+
 export function ExpeditionCard({
   expedition,
   onPress,
@@ -170,13 +199,13 @@ export function ExpeditionCard({
           <span style={s.fileName} className="text">
             {expedition.regions.length} chapters
           </span>
-
         </div>
       </div>
       <Icon name="chevron-right" size={22} color={colors.wood} />
     </button>
   );
 }
+
 export function RegionScreen({
   expedition,
   onBack,
@@ -239,6 +268,7 @@ export function RegionScreen({
     </div>
   );
 }
+
 export function RegionDetailScreen({
   expedition,
   region,
@@ -255,7 +285,7 @@ export function RegionDetailScreen({
   );
   return (
     <div className="scroll">
-      <div className="stack" style={s.detailPage}>
+      <div className="stack" style={s.regionPage}>
         <div style={s.backHeading} className="stack">
           <BackButton onPress={onBack} />
           <div style={ui.flex} className="stack">
@@ -283,15 +313,21 @@ export function RegionDetailScreen({
           <span style={ui.body} className="text">
             {region.summary}
           </span>
-          <span style={ui.body} className="text">Start with 500 HP. Each enemy has 100 HP. Correct answers deal 50 damage; wrong answers cost you 50 HP. Finish every question with HP remaining to win. Unfinished answers are saved.</span>
+          <span style={ui.body} className="text">
+            Start with 500 HP. Each enemy has 100 HP. Correct answers deal 50 damage; wrong answers cost you 50 HP. Finish every question with HP remaining to win. Unfinished answers are saved.
+          </span>
           {region.material && (
             <div style={s.topics} className="stack">
               <span style={ui.heading} className="text">Study material</span>
-              {region.material.split(/\n\s*\n/).map((paragraph, index) => (
-                <p key={index} style={{ ...ui.body, margin: 0, whiteSpace: "pre-wrap" }}>{paragraph}</p>
+              {region.material.split(/\n\s*\n/).map((paragraph, pIdx) => (
+                <p key={pIdx} style={{ ...ui.body, margin: 0, whiteSpace: "pre-wrap" }}>
+                  {paragraph}
+                </p>
               ))}
               {!!region.sourcePages?.length && (
-                <span style={ui.body} className="text">PDF pages: {region.sourcePages.join(", ")}</span>
+                <span style={ui.body} className="text">
+                  PDF pages: {region.sourcePages.join(", ")}
+                </span>
               )}
             </div>
           )}
@@ -328,6 +364,7 @@ export function RegionDetailScreen({
     </div>
   );
 }
+
 function BackButton({ onPress }: { onPress: () => void }) {
   return (
     <button
@@ -342,46 +379,20 @@ function BackButton({ onPress }: { onPress: () => void }) {
     </button>
   );
 }
+
+function Badge({ text, icon }: { text: string; icon: IconName }) {
+  return (
+    <div style={s.badge} className="stack">
+      <Icon name={icon} size={16} color="#8a531f" />
+      <span style={s.badgeText} className="text">
+        {text}
+      </span>
+    </div>
+  );
+}
+
 const s = {
-  page: { gap: 16 },
-  pageHeading: { gap: 4 },
   scrollChoices: { gap: 8, paddingTop: 3, paddingBottom: 3, paddingRight: 12 },
-  scrollChoice: {
-    width: 156,
-    minHeight: 58,
-    padding: 9,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    borderWidth: 2,
-    borderBottomWidth: 4,
-    borderColor: "#b6956b",
-    borderRadius: 12,
-    backgroundColor: "#dfc7a4",
-  },
-  activeChoice: { backgroundColor: "#54331a", borderColor: colors.edge },
-  choiceText: {
-    flex: "1 1 0%",
-    fontFamily: fonts.heading,
-    fontSize: 12,
-    lineHeight: "17px",
-    color: "#54331a",
-  },
-  expeditionHeading: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    minHeight: 70,
-  },
-  expeditionTitle: {
-    fontFamily: fonts.heading,
-    fontSize: 19,
-    lineHeight: "26px",
-    color: colors.ink,
-    marginBottom: 4,
-  },
-  selectedChapter: { gap: 10 },
-  stateText: { ...ui.label, color: colors.wood },
   material: {
     minHeight: 96,
     flexDirection: "row",
@@ -429,7 +440,6 @@ const s = {
     borderLeftWidth: 1,
     borderColor: "#b7a27b",
   },
-  pressed: { transform: "translateY(" + 2 + "px)" },
   regionPage: { padding: 16, paddingTop: 24, paddingBottom: 32, gap: 22 },
   backHeading: { flexDirection: "row", alignItems: "center", gap: 12 },
   back: {
@@ -449,56 +459,82 @@ const s = {
     lineHeight: "28px",
     color: colors.ink,
   },
-  mapLegend: {
-    flexDirection: "row",
-    justifyContent: "center",
-    flexWrap: "wrap",
-    gap: 14,
-  },
-  detailPage: { padding: 16, paddingTop: 24, paddingBottom: 32, gap: 20 },
   detailTitle: {
     fontFamily: fonts.heading,
-    fontSize: 22,
-    lineHeight: "29px",
-    color: colors.ink,
-    marginTop: 4,
+    fontSize: 16,
+    lineHeight: "22px",
+    color: colors.wood,
   },
-  regionShowcase: { alignItems: "center" },
-  regionImage: {
-    position: "relative",
-    width: "100%",
-    maxWidth: 330,
-    height: 190,
-  },
-  topics: { gap: 12, marginTop: 4 },
-  topic: { flexDirection: "row", alignItems: "center", gap: 10 },
-  topicNumber: {
-    width: 28,
-    height: 28,
-    borderRadius: 9,
-    backgroundColor: "#ebd5b3",
+  regionShowcase: {
     alignItems: "center",
     justifyContent: "center",
+    minHeight: 180,
+  },
+  regionImage: {
+    width: "100%",
+    maxWidth: 320,
+    height: 180,
+  },
+  topics: { gap: 10 },
+  topic: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    padding: 10,
+    backgroundColor: "#e8d2b2",
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#c7ab84",
+    borderColor: "#cbb18e",
+  },
+  topicNumber: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#54331a",
+    alignItems: "center",
+    justifyContent: "center",
   },
   topicNumberText: {
     fontFamily: fonts.heading,
     fontSize: 12,
-    color: colors.wood,
+    color: colors.parchment,
   },
   topicText: {
     flex: "1 1 0%",
     fontFamily: fonts.body,
     fontSize: 13,
-    lineHeight: "20px",
     color: colors.ink,
   },
   encounterMeta: {
     flexDirection: "row",
-    flexWrap: "wrap",
     gap: 8,
-    marginTop: 4,
+    flexWrap: "wrap",
   },
-  readyBlock: { gap: 10, alignItems: "center" },
+  badge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    padding: "6px 10px",
+    backgroundColor: "#e8d5b5",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#cca875",
+  },
+  badgeText: {
+    fontFamily: fonts.heading,
+    fontSize: 11,
+    color: "#5c3714",
+  },
+  readyBlock: {
+    marginTop: 10,
+  },
+  mapLegend: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    padding: 12,
+    backgroundColor: "#e8d7ba",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#cca875",
+  },
 } satisfies Record<string, CSSProperties>;
