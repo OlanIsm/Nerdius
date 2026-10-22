@@ -266,8 +266,8 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
         currentQuestion.prompt,
       );
       assert(
-        await page.locator('.battle-question-text').evaluate(element => getComputedStyle(element).fontSize === '20px'),
-        'speech bubble question text stays 20px',
+        await page.locator('.battle-question-text').evaluate(element => getComputedStyle(element).fontSize === '40px'),
+        'speech bubble question text stays 40px',
       );
       assert.equal(
         await page.locator('.battle-question-bubble').evaluate(element => getComputedStyle(element).borderTopWidth),
@@ -299,7 +299,7 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
           await assertStaticQuiz('Submit answer');
           assert.equal(
             await page.locator('.battle-question-text').evaluate(element => getComputedStyle(element).fontSize),
-            '20px',
+            '40px',
             `speech bubble font remains fixed at ${viewport.width}px viewport width`,
           );
           await page.screenshot({ path: `test-results/static-quiz-${viewport.width}.png` });

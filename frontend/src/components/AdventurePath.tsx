@@ -95,7 +95,7 @@ export function AdventurePath({
               draggable={false}
             />
             <div
-              className={`chapter-node ${state === "Completed" ? "completed" : "unfinished"} ${active ? "selected" : ""}`}
+              className={`chapter-node ${state === "Completed" ? "completed" : state === "Current" ? "current" : "unfinished"} ${active ? "selected" : ""}`}
               aria-hidden="true"
             >
               {state === "Completed" ? (
@@ -104,7 +104,7 @@ export function AdventurePath({
                 <span>{chapter.chapter}</span>
               )}
             </div>
-            <div className={`chapter-card ${active ? "selected" : ""}`}>
+            <div className={`chapter-card ${state === "Current" ? "current" : ""} ${active ? "selected" : ""}`}>
               <div className="chapter-copy">
                 <span className="chapter-meta">
                   Chapter {chapter.chapter} &middot; {chapter.questions} questions

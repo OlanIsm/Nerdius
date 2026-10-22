@@ -36,6 +36,10 @@ const walkingUrl = new URL(
   "../../assets/audio/run_on_grass.mp3",
   import.meta.url,
 ).href;
+const dingUrl = new URL(
+  "../../assets/audio/ding.m4a",
+  import.meta.url,
+).href;
 const correctAnswerUrl = new URL(
   "../../assets/audio/correct-kalimba.m4a",
   import.meta.url,
@@ -314,7 +318,7 @@ export function playCorrectAnswerSound() {
 }
 
 export function playCoinPickupSound() {
-  playOneShot(correctAnswerUrl);
+  playOneShot(dingUrl);
 }
 
 export function playDamageHitSound() {

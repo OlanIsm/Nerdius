@@ -259,7 +259,7 @@ export function BattleQuiz({
       ) : (
         <form onSubmit={(event) => { event.preventDefault(); void submit(); }}>
           <fieldset disabled={busy}>
-            <legend className="visually-hidden">{prompt}</legend>
+            <legend className="visually-hidden">{question.prompt}</legend>
             <div className="quiz-options">
               {question.options.map((option, index) => (
                 <label key={`${question.id}-${index}`} className={`quiz-option ${selected === index ? "selected" : ""}`}>

@@ -179,7 +179,7 @@ export default function App() {
         )}
         <main className="pages" ref={main} tabIndex={-1} aria-label={screen}>
           {screen === "Settings" && <div className="page-scroll page-reveal" ref={(node) => { pages.current.Settings = node; }}>
-            <SettingsScreen onBack={() => navigate(settingsFrom.current)} />
+            <SettingsScreen onBack={() => navigate(settingsFrom.current)} onSignOut={() => void signOut()} />
           </div>}
           {visited.has("Hub") && (
             <div
@@ -193,7 +193,6 @@ export default function App() {
                 {...props}
                 expeditions={availableExpeditions}
                 lastAdventure={recentAdventure}
-                onSignOut={() => void signOut()}
                 onForge={forge}
                 onForgeSettled={(result) => setForgeNotice(result === "ready" ? "Your adventure is ready" : "Your forge needs attention")}
                 onReadForge={() => setForgeNotice(undefined)}

@@ -12,7 +12,13 @@ const plans = [
   { name: "Master", price: "Rp80.000" },
 ] as const;
 
-export function SettingsScreen({ onBack }: { onBack: () => void }) {
+export function SettingsScreen({
+  onBack,
+  onSignOut,
+}: {
+  onBack: () => void;
+  onSignOut?: () => void;
+}) {
   const [section, setSection] = useState<Section>();
   const [displayName] = usePreference("nerdungeon.displayName", "Nerd Mage");
   const heading = useRef<HTMLHeadingElement>(null);
@@ -55,7 +61,7 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
         </article>)}
         <p className="settings-note">Paid plans are not available yet.</p>
       </div>}
-      {section === "Account" && <AccountSettings />}
+      {section === "Account" && <AccountSettings onSignOut={onSignOut} />}
       <footer className="settings-social">
         <a href="https://www.instagram.com/_nerdius_/" target="_blank" rel="noreferrer">
           <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
@@ -120,7 +126,7 @@ function PreferenceSettings() {
   </div>;
 }
 
-function AccountSettings() {
+function AccountSettings({ onSignOut }: { onSignOut?: () => void }) {
   const [account, setAccount] = useState<Account>();
   const [error, setError] = useState<string>();
   const [attempt, setAttempt] = useState(0);
@@ -138,6 +144,11 @@ function AccountSettings() {
       {account.email && <p className="settings-email">{account.email}</p>}
       <label htmlFor="account-id">Account ID</label><input id="account-id" value={account.id} readOnly />
       {!account.email && <p className="settings-note">Keep your browser data to keep your progress. Account recovery is not available yet.</p>}
+      {onSignOut && (
+        <div style={{ marginTop: 16 }}>
+          <Button label="Sign out" tone="quiet" onPress={onSignOut} />
+        </div>
+      )}
     </> : <p role="status">Loading account…</p>}
   </div>;
 }

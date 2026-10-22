@@ -57,12 +57,14 @@ export function AdventureScreen({
               <Icon
                 name="book-open-page-variant-outline"
                 size={21}
-                color={active === index ? colors.parchment : colors.teal}
+                color={active === index ? colors.parchment : "#54331a"}
               />
               <span
                 style={{
                   ...s.choiceText,
-                  ...((active === index && { color: colors.parchment }) || {}),
+                  ...(active === index
+                    ? { color: colors.parchment }
+                    : { color: "#45260f" }),
                 }}
                 className="text"
               >
@@ -171,7 +173,7 @@ export function ExpeditionCard({
 
         </div>
       </div>
-      <Icon name="chevron-right" size={22} color={colors.teal} />
+      <Icon name="chevron-right" size={22} color={colors.wood} />
     </button>
   );
 }
@@ -353,17 +355,17 @@ const s = {
     gap: 8,
     borderWidth: 2,
     borderBottomWidth: 4,
-    borderColor: "#b4a481",
+    borderColor: "#b6956b",
     borderRadius: 12,
-    backgroundColor: colors.parchment,
+    backgroundColor: "#dfc7a4",
   },
-  activeChoice: { backgroundColor: colors.teal, borderColor: colors.edge },
+  activeChoice: { backgroundColor: "#54331a", borderColor: colors.edge },
   choiceText: {
     flex: "1 1 0%",
     fontFamily: fonts.heading,
     fontSize: 12,
     lineHeight: "17px",
-    color: colors.ink,
+    color: "#54331a",
   },
   expeditionHeading: {
     flexDirection: "row",
@@ -379,7 +381,7 @@ const s = {
     marginBottom: 4,
   },
   selectedChapter: { gap: 10 },
-  stateText: { ...ui.label, color: colors.teal },
+  stateText: { ...ui.label, color: colors.wood },
   material: {
     minHeight: 96,
     flexDirection: "row",
@@ -474,16 +476,16 @@ const s = {
     width: 28,
     height: 28,
     borderRadius: 9,
-    backgroundColor: colors.sage,
+    backgroundColor: "#ebd5b3",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#adb99a",
+    borderColor: "#c7ab84",
   },
   topicNumberText: {
     fontFamily: fonts.heading,
     fontSize: 12,
-    color: colors.teal,
+    color: colors.wood,
   },
   topicText: {
     flex: "1 1 0%",

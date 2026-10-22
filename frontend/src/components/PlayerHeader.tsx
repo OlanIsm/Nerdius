@@ -52,19 +52,21 @@ export function PlayerHeader({
           alt=""
           draggable={false}
         />
-        <div style={s.level} className="stack">
-          <span style={s.levelText} className="text">
-            Lv.5
-          </span>
-        </div>
       </button>
       <button type="button" aria-label="Open settings" onClick={onPressProfile} style={s.player} className="stack pressable">
         <span style={s.name} className="text">
           {displayName}
         </span>
-        <span style={s.rank} className="text">
-          Scholar · {xp.toLocaleString()} XP
-        </span>
+        <div style={s.rankRow} className="stack">
+          <span style={s.rank} className="text">
+            Scholar · {xp.toLocaleString()} XP
+          </span>
+          <div style={s.level} className="stack">
+            <span style={s.levelText} className="text">
+              Lv.5
+            </span>
+          </div>
+        </div>
         <div
           role="progressbar"
           aria-label="Player experience"
@@ -119,11 +121,16 @@ const s = {
     borderColor: colors.edge,
     borderRadius: 15,
     alignItems: "center",
+    justifyContent: "center",
   },
   character: { width: 52, height: 52 },
+  rankRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
+  },
   level: {
-    position: "absolute",
-    bottom: -4,
     borderWidth: 1,
     borderColor: colors.edge,
     borderRadius: 6,
@@ -150,7 +157,7 @@ const s = {
     width: "62.5%",
     height: "100%",
     borderRadius: 4,
-    backgroundColor: colors.teal,
+    backgroundColor: colors.gold,
   },
   resources: { gap: 5 },
   resource: {

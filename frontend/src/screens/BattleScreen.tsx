@@ -673,7 +673,7 @@ function ChapterResultPanel({ battle }: { battle: BattleView }) {
       aria-labelledby="fight-status"
     >
       <div className="result-reward-column">
-        <h2 id="fight-status" data-testid="fight-status">{battle.status === "passed" ? "Chapter cleared!" : "Adventure over"}</h2>
+        <h2 id="fight-status" data-testid="fight-status">{battle.status === "passed" ? "Chapter cleared!" : "Defeated"}</h2>
         <p className="result-score">{battle.correct} / {battle.total} correct</p>
         <div className="result-rewards" aria-label="Chapter rewards">
           {resultRewardOrder.map((reward, index) => {
