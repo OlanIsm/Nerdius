@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import { art, icons } from "../assets";
 import { colors, fonts } from "../theme";
 import { usePreference } from "../modules/settings/preferences";
+
 function Resource({ kind, label }: { kind: "coins" | "gems"; label: string }) {
   return (
     <div
@@ -22,6 +23,7 @@ function Resource({ kind, label }: { kind: "coins" | "gems"; label: string }) {
     </div>
   );
 }
+
 export function PlayerHeader({
   onPressProfile,
   gold = 1450,
@@ -36,7 +38,13 @@ export function PlayerHeader({
   const [displayName] = usePreference("nerdungeon.displayName", "Nerd Mage");
   return (
     <div style={s.header} className="stack player-header">
-      <div aria-hidden={true} style={s.highlight} className="stack" />
+      <img
+        src={art.headerPlank}
+        alt=""
+        aria-hidden="true"
+        className="header-plank"
+        draggable={false}
+      />
       <button
         role="button"
         aria-label="Open player profile"
@@ -86,8 +94,10 @@ export function PlayerHeader({
     </div>
   );
 }
+
 const s = {
   header: {
+    position: "relative",
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
@@ -96,32 +106,22 @@ const s = {
     marginRight: 12,
     marginTop: 10,
     marginBottom: 4,
-    padding: 10,
-    backgroundColor: colors.parchment,
-    borderWidth: 2,
-    borderBottomWidth: 4,
-    borderColor: colors.edge,
-    borderRadius: 22,
-    borderBottomLeftRadius: 14,
-  },
-  highlight: {
-    position: "absolute",
-    top: 3,
-    left: 18,
-    right: 18,
-    height: 3,
-    backgroundColor: colors.white,
-    borderRadius: 2,
+    padding: "10px 14px",
+    backgroundColor: "transparent",
+    borderRadius: 18,
   },
   portrait: {
+    position: "relative",
+    zIndex: 1,
     width: 54,
     height: 62,
-    backgroundColor: colors.sage,
+    backgroundColor: "#3a2211",
     borderWidth: 2,
-    borderColor: colors.edge,
+    borderColor: "#744622",
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
+    boxShadow: "inset 0 1px 4px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.3)",
   },
   character: { width: 52, height: 52 },
   rankRow: {
@@ -132,26 +132,38 @@ const s = {
   },
   level: {
     borderWidth: 1,
-    borderColor: colors.edge,
+    borderColor: "#573514",
     borderRadius: 6,
     backgroundColor: colors.gold,
     paddingLeft: 6,
     paddingRight: 6,
     paddingTop: 1,
     paddingBottom: 1,
+    boxShadow: "0 1px 2px rgba(0,0,0,0.4)",
   },
-  levelText: { fontFamily: fonts.heading, fontSize: 11, color: colors.ink },
-  player: { flex: "1 1 0%", minWidth: 0, gap: 5 },
-  name: { fontFamily: fonts.heading, fontSize: 16, color: colors.ink },
-  rank: { fontFamily: fonts.label, fontSize: 11, color: colors.muted },
+  levelText: { fontFamily: fonts.heading, fontSize: 11, color: "#3d2105" },
+  player: { position: "relative", zIndex: 1, flex: "1 1 0%", minWidth: 0, gap: 5 },
+  name: {
+    fontFamily: fonts.heading,
+    fontSize: 16,
+    color: "#fff8ea",
+    textShadow: "0 1px 3px rgba(0, 0, 0, 0.85)",
+  },
+  rank: {
+    fontFamily: fonts.label,
+    fontSize: 11,
+    color: "#f3d8a5",
+    textShadow: "0 1px 2px rgba(0, 0, 0, 0.8)",
+  },
   track: {
     height: 8,
     padding: 1,
-    backgroundColor: colors.inset,
+    backgroundColor: "#271408",
     borderWidth: 1,
-    borderColor: "#ac9978",
+    borderColor: "#573514",
     borderRadius: 5,
     overflow: "hidden",
+    boxShadow: "inset 0 1px 2px rgba(0,0,0,0.7)",
   },
   fill: {
     width: "62.5%",
@@ -159,18 +171,24 @@ const s = {
     borderRadius: 4,
     backgroundColor: colors.gold,
   },
-  resources: { gap: 5 },
+  resources: { position: "relative", zIndex: 1, gap: 5 },
   resource: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
     minWidth: 77,
     borderWidth: 1,
-    borderColor: "#baa47d",
-    backgroundColor: "#f5e8c6",
+    borderColor: "#573514",
+    backgroundColor: "#2e1808d9",
     borderRadius: 20,
     paddingRight: 8,
+    boxShadow: "inset 0 1px 3px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.3)",
   },
   resourceImage: { width: 25, height: 25 },
-  resourceValue: { fontFamily: fonts.heading, fontSize: 12, color: colors.ink },
+  resourceValue: {
+    fontFamily: fonts.heading,
+    fontSize: 12,
+    color: "#fff4d4",
+    textShadow: "0 1px 2px rgba(0, 0, 0, 0.7)",
+  },
 } satisfies Record<string, CSSProperties>;

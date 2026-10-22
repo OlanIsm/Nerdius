@@ -924,7 +924,7 @@ export function PhaserWorld({
           duration: 110,
           yoyo: true,
           onStart: () => {
-            if (target === this.hero) playDamageHitSound();
+            playDamageHitSound();
           },
           onComplete: () => {
             if (target.active) target.clearTint();

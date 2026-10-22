@@ -465,8 +465,49 @@ p {
   border-color: #704621;
 }
 .chapter-card.current {
-  border-color: #c98b2c;
-  box-shadow: 0 0 10px #f4c35b55;
+  background: linear-gradient(135deg, #fff2ad 0%, #ffe072 45%, #f7cb55 100%);
+  border-color: #a46f14;
+  border-bottom-width: 4px;
+  box-shadow: 0 4px 12px #f4c35b66, 0 0 8px #ffd24d55;
+  animation: current-chapter-bounce 1.8s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite;
+  transform-origin: center bottom;
+}
+.chapter-card.current .chapter-meta {
+  color: #7a4e0a;
+}
+.chapter-card.current .chapter-title {
+  color: #382006;
+}
+.chapter-card.current .chapter-status {
+  background: linear-gradient(135deg, #f5a91f 0%, #df8b09 100%);
+  color: #fff9e6;
+  border-left: 1px solid #b67c1c;
+  font-weight: bold;
+}
+@keyframes current-chapter-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  28% {
+    transform: translateY(-5px);
+  }
+  44% {
+    transform: translateY(0);
+  }
+  58% {
+    transform: translateY(-2px);
+  }
+  70% {
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chapter-card.current {
+    animation: none;
+  }
+}
+.app[data-reduced-motion="true"] .chapter-card.current {
+  animation: none;
 }
 .chapter-copy {
   display: flex;
@@ -567,12 +608,14 @@ p {
   flex-shrink: 0;
   z-index: 10;
 }
-.nav-plank {
+.nav-plank,
+.header-plank {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
+  z-index: 0;
 }
 .game-button {
   position: relative;
@@ -1310,9 +1353,9 @@ body .battle-result-panel .result-grade-fallback { font-size: 150px !important; 
 .result-actions > .quiz-error { flex: 1 0 100%; }
 body :not(.icon) {
   font-family: var(--game-font-family), sans-serif !important;
-  font-size: calc(40px * var(--game-font-scale, 1)) !important;
+  font-size: calc(25px * var(--game-font-scale, 1)) !important;
   font-weight: 700 !important;
-  line-height: 1.2;
+  line-height: 1.35;
 }
 button,
 [role="button"] {

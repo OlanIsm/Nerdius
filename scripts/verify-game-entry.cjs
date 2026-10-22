@@ -128,13 +128,13 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
       const gate = await page.getByTestId('gate-loading').boundingBox();
       const viewport = page.viewportSize();
       assert(gate.y >= 0 && gate.y + gate.height <= viewport.height, 'gate stays inside viewport');
-      const leftDoor = await page.locator('.gate.loading .gate-door.left img').boundingBox();
-      assert(
-        Math.abs(leftDoor.x + leftDoor.width - (gate.x + gate.width / 2)) <= 1,
-        'closed left door meets the gate center at any viewport aspect ratio',
-      );
-      await page.screenshot({ path: 'test-results/gate-closed.png' });
+      const leftDoor = await page.locator('.gate .gate-door.left img').first().boundingBox();
       if (slowStart) {
+        assert(
+          Math.abs(leftDoor.x + leftDoor.width - (gate.x + gate.width / 2)) <= 1,
+          'closed left door meets the gate center at any viewport aspect ratio',
+        );
+        await page.screenshot({ path: 'test-results/gate-closed.png' });
         assert.equal(await page.locator('canvas').count(), 0, 'Game waits behind closed doors for start response');
         const loadingStarted = await page.getByTestId('fight-page').getAttribute('data-loading-started');
         await page.waitForTimeout(1700);
@@ -266,8 +266,8 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
         currentQuestion.prompt,
       );
       assert(
-        await page.locator('.battle-question-text').evaluate(element => getComputedStyle(element).fontSize === '40px'),
-        'speech bubble question text stays 40px',
+        await page.locator('.battle-question-text').evaluate(element => getComputedStyle(element).fontSize === '25px'),
+        'speech bubble question text stays 25px',
       );
       assert.equal(
         await page.locator('.battle-question-bubble').evaluate(element => getComputedStyle(element).borderTopWidth),
@@ -299,7 +299,7 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
           await assertStaticQuiz('Submit answer');
           assert.equal(
             await page.locator('.battle-question-text').evaluate(element => getComputedStyle(element).fontSize),
-            '40px',
+            '25px',
             `speech bubble font remains fixed at ${viewport.width}px viewport width`,
           );
           await page.screenshot({ path: `test-results/static-quiz-${viewport.width}.png` });

@@ -28,6 +28,10 @@ export const art = {
     "../assets/background/floating_Island.webp",
     import.meta.url,
   ).href,
+  headerPlank: new URL(
+    "../assets/icon/header plank.webp",
+    import.meta.url,
+  ).href,
   navPlank: new URL("../assets/icon/Plank bar.webp", import.meta.url).href,
   doorLeft: new URL("../assets/GUI/door/Door left.webp", import.meta.url).href,
   doorRight: new URL("../assets/GUI/door/Door right.webp", import.meta.url)
