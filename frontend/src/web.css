@@ -600,7 +600,7 @@ body .chapter-stop .chapter-node,
   justify-self: end;
 }
 
-/* ==================== EXPEDITION PAGE (FANTASY SCENERY & RUSTIC RPG FRAMES) ==================== */
+/* ==================== EXPEDITION PAGE (RUSTIC RPG FRAMES) ==================== */
 .expedition-page {
   position: relative;
   display: flex;
@@ -608,7 +608,7 @@ body .chapter-stop .chapter-node,
   gap: 14px;
   padding: 10px 12px 28px;
   box-sizing: border-box;
-  background: url("/assets/background/hub_wallpaper.webp") no-repeat center top / cover;
+  background: transparent;
   min-height: 100%;
 }
 
