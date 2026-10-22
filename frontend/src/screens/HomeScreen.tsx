@@ -1,19 +1,16 @@
-import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
 import { art } from "../assets";
 import {
   Button,
   Icon,
-  SectionTitle,
   useReducedMotion,
 } from "../components/GameUI";
 import { RealmFrame } from "../components/FantasyUI";
-import { colors, fonts, ui } from "../theme";
-import { ExpeditionCard } from "./AdventureScreen";
 import { expeditions } from "../modules/game/tutorial";
 import type { Expedition, Region } from "../modules/game/types";
 import { useForge } from "../modules/game/useForge";
 import type { ScreenProps } from "../types";
+
 export function HomeScreen({
   navigate,
   notify,
@@ -44,8 +41,9 @@ export function HomeScreen({
   function pickFile() {
     fileInput.current?.click();
   }
+
   return (
-    <div style={s.page} className="stack">
+    <div className="hub-page stack">
       <input
         ref={fileInput}
         type="file"
@@ -79,303 +77,281 @@ export function HomeScreen({
         />
       )}
 
-      <div style={s.scroll} className="stack">
-        <div
-          aria-hidden={true}
-          style={{ ...s.scrollRoll, ...s.rollTop }}
-          className="stack"
-        >
-          <div style={s.rollHighlight} className="stack" />
-        </div>
-        <div
-          aria-hidden={true}
-          style={{ ...s.scrollRoll, ...s.rollBottom }}
-          className="stack"
-        >
-          <div style={s.rollHighlight} className="stack" />
-        </div>
-        <div style={s.forgeHeading} className="stack">
-          <Icon name="feather" size={23} color={colors.wood} />
-          <span style={s.forgeTitle} className="text">
-            The Study Forge
-          </span>
-        </div>
-        <button
-          role="button"
-          aria-label="Browse study files"
-          onClick={pickFile}
-          style={{ ...s.dropZone }}
-          className="stack pressable"
-          type="button"
-          disabled={forging}
-        >
-          <div
-            aria-label={file ? "Selected PDF" : undefined}
-            style={s.documentEmblem}
-            className="stack"
-          >
-            <Icon
-              name={file ? "file-check-outline" : "file-plus-outline"}
-              size={30}
-              color={colors.teal}
-            />
+      {/* CARD 1: THE STUDY FORGE (PURE CSS ARCHITECTURE) */}
+      <div className="css-forge-wrapper stack">
+        {/* Left Stone Pillar with Torch Brazier & Star Banner */}
+        <div className="pillar left" aria-hidden="true">
+          <div className="torch-flame" />
+          <div className="torch-brazier" />
+          <div className="pillar-column" />
+          <div className="pillar-banner">
+            <span className="banner-star">★</span>
           </div>
-          <span style={s.uploadTitle} className="text">
+          <div className="pillar-vines" />
+        </div>
+
+        {/* Right Stone Pillar with Torch Brazier & Star Banner */}
+        <div className="pillar right" aria-hidden="true">
+          <div className="torch-flame" />
+          <div className="torch-brazier" />
+          <div className="pillar-column" />
+          <div className="pillar-banner">
+            <span className="banner-star">★</span>
+          </div>
+          <div className="pillar-vines" />
+        </div>
+
+        {/* Top Arched Wooden Banner */}
+        <div className="forge-header-arch">
+          <div className="arch-star-crest" aria-hidden="true">✦</div>
+          <div className="arch-content">
+            <span className="arch-book-icon" aria-hidden="true">📖</span>
+            <span className="forge-title text">The Study Forge</span>
+          </div>
+        </div>
+
+        {/* Main Parchment Board */}
+        <div className="forge-parchment-board stack">
+          <div className="rivet top-left" aria-hidden="true" />
+          <div className="rivet top-right" aria-hidden="true" />
+          <div className="rivet bottom-left" aria-hidden="true" />
+          <div className="rivet bottom-right" aria-hidden="true" />
+
+          {/* Halo & Document Upload Emblem */}
+          <div className="forge-halo-emblem" aria-hidden="true">
+            <div className="halo-circle">
+              <span className="halo-sparkle s1">✦</span>
+              <span className="halo-sparkle s2">✦</span>
+              <span className="halo-sparkle s3">✦</span>
+              <span className="halo-sparkle s4">✦</span>
+              <div className="upload-doc-graphic">
+                <div className="doc-page">
+                  <div className="doc-line l1" />
+                  <div className="doc-line l2" />
+                </div>
+                <div className="doc-arrow">▲</div>
+              </div>
+            </div>
+          </div>
+
+          <span className="forge-upload-heading text">
             {file ?? "Upload study material"}
           </span>
-          {!file && (
-            <div style={s.browse} className="stack">
-              <span style={s.browseText} className="text">
-                Browse files
-              </span>
-              <Icon name="upload" size={18} color={colors.ink} />
-            </div>
-          )}
-          <span style={s.formats} className="text">
+
+          {/* 3D Gold Action Button */}
+          <button
+            role="button"
+            aria-label={file ? "Forge Adventure" : "Browse study files"}
+            onClick={file ? () => void forgeAdventure() : pickFile}
+            className="css-gold-btn forge-main-btn"
+            type="button"
+            disabled={forging}
+          >
+            <Icon name={file ? "creation" : "book-open-page-variant-outline"} size={20} color="#3d2105" />
+            <span className="btn-label text">{file ? "Forge Adventure" : "Browse files"}</span>
+            <Icon name={file ? "arrow-right" : "upload"} size={18} color="#3d2105" />
+          </button>
+
+          <span className="forge-file-hint text">
             PDF, DOCX · Max 25 MB
           </span>
-        </button>
-        {file && (
-          <Button
-            label="Forge Adventure"
-            tone="gold"
-            icon="creation"
-            onPress={() => void forgeAdventure()}
-            disabled={forging}
-          />
-        )}
+        </div>
+
+        {/* Stepped Cobblestone Foundation */}
+        <div className="forge-stone-steps" aria-hidden="true">
+          <div className="step-tier top" />
+          <div className="step-tier bottom" />
+        </div>
       </div>
 
-      <RealmFrame variant="sage" style={s.continueCard}>
-        <div style={ui.row} className="stack">
-          <Icon name="flag-variant" size={21} color={colors.teal} />
-          <span style={s.continueHeading} className="text">
-            Continue Adventure
-          </span>
-        </div>
-        <span style={s.questTitle} className="text">
-          {lastAdventure.expedition.title}
-        </span>
-        <span style={ui.body} className="text">
-          Chapter {lastAdventure.region.chapter} · {lastAdventure.region.title}
-        </span>
-        <Button
-          label="Continue Adventure"
-          tone="gold"
-          icon="play"
-          onPress={onContinue}
-        />
-      </RealmFrame>
+      {/* CARD 2: CONTINUE ADVENTURE (PURE CSS ARCHITECTURE) */}
+      <div className="css-continue-card stack">
+        {/* Metal Corner Brackets */}
+        <div className="corner-bracket top-left" aria-hidden="true"><span>•</span></div>
+        <div className="corner-bracket top-right" aria-hidden="true"><span>•</span></div>
+        <div className="corner-bracket bottom-left" aria-hidden="true"><span>•</span><div className="corner-leaves" /></div>
+        <div className="corner-bracket bottom-right" aria-hidden="true"><span>•</span><div className="corner-leaves" /></div>
 
-      <div style={s.materialHeading} className="stack">
-        <div style={ui.flex} className="stack">
-          <SectionTitle title="Study scrolls" />
+        {/* Forest Green Ribbon Banner */}
+        <div className="continue-ribbon-banner">
+          <div className="ribbon-fold left" aria-hidden="true" />
+          <div className="ribbon-body">
+            <span className="ribbon-flag-icon" aria-hidden="true">🚩</span>
+            <span className="continue-title text">Continue Adventure</span>
+          </div>
+          <div className="ribbon-fold right" aria-hidden="true" />
         </div>
-        <button
-          role="button"
-          aria-label="View all expeditions"
-          onClick={() => navigate("Expedition")}
-          style={s.allLink}
-          className="stack pressable"
-          type="button"
-        >
-          <span style={s.allText} className="text">
-            View all
-          </span>
-          <Icon name="chevron-right" size={18} color={colors.teal} />
-        </button>
+
+        {/* Interior Parchment with Castle Silhouette */}
+        <div className="continue-parchment-inner">
+          <div className="parchment-castle-decor" aria-hidden="true" />
+
+          <div className="continue-body-row">
+            {/* CSS Leather Quest Book */}
+            <div className="css-quest-book" aria-hidden="true">
+              <div className="book-spine" />
+              <div className="book-cover">
+                <span className="book-star">✦</span>
+              </div>
+              <span className="book-sparkle">✨</span>
+            </div>
+
+            <div className="continue-quest-details stack">
+              <span className="quest-main-title text">
+                {lastAdventure.expedition.title}
+              </span>
+              <span className="quest-chapter-label text">
+                Chapter {lastAdventure.region.chapter} · {lastAdventure.region.title}
+              </span>
+            </div>
+          </div>
+
+          {/* Big 3D Gold Continue Button */}
+          <button
+            role="button"
+            aria-label="Continue Adventure"
+            onClick={onContinue}
+            className="css-gold-btn continue-big-btn"
+            type="button"
+          >
+            <span className="btn-chevron text">«</span>
+            <Icon name="play" size={20} color="#3d2105" />
+            <span className="btn-label text">Continue Adventure</span>
+            <span className="btn-chevron text">»</span>
+          </button>
+        </div>
       </div>
-      <div style={s.materials} className="stack">
-        {job && (
-          <RealmFrame variant="sage" style={{ gap: 12 }}>
-            <section
-              className="forge-status"
-              data-forge-status={job.status}
-              aria-label="Forge progress"
-              tabIndex={-1}
+
+      {/* SECTION 3: STUDY SCROLLS (PURE CSS ARCHITECTURE) */}
+      <div className="css-scrolls-section stack">
+        <div className="scrolls-section-header">
+          {/* Carved Wooden Plank Badge */}
+          <div className="css-wooden-scrolls-badge">
+            <div className="badge-scroll-icon" aria-hidden="true">📜</div>
+            <span className="badge-title text">Study scrolls</span>
+            <div className="badge-ivy-leaves" aria-hidden="true" />
+          </div>
+
+          <button
+            role="button"
+            aria-label="View all expeditions"
+            onClick={() => navigate("Expedition")}
+            className="css-view-all-btn"
+            type="button"
+          >
+            <span className="text">View all</span>
+            <Icon name="chevron-right" size={16} color="#ffd899" />
+          </button>
+        </div>
+
+        <div className="scroll-cards-container stack">
+          {job && (
+            <RealmFrame variant="sage" style={{ gap: 12 }}>
+              <section
+                className="forge-status"
+                data-forge-status={job.status}
+                aria-label="Forge progress"
+                tabIndex={-1}
+              >
+                <div className="forge-status-heading">
+                  <img
+                    src={
+                      forging && !reducedMotion ? art.nerdEatPdf : art.character
+                    }
+                    alt=""
+                  />
+                  <div>
+                    <h3>
+                      {forging
+                        ? "Forging adventure"
+                        : job.status === "ready"
+                          ? "Adventure ready!"
+                          : "Could not forge adventure"}
+                    </h3>
+                    <p>{job.file.name}</p>
+                  </div>
+                </div>
+                <div role={job.status === "failed" ? "alert" : "status"}>
+                  {forging ? (
+                    <>
+                      <progress aria-label="Generating study material" />
+                      <p>
+                        You can keep exploring. Your result will appear here. Keep
+                        this tab open.
+                      </p>
+                    </>
+                  ) : job.status === "ready" ? (
+                    <p>{job.expedition?.title} is ready to explore.</p>
+                  ) : (
+                    <p>{job.error}</p>
+                  )}
+                </div>
+                {forging ? (
+                  <Button
+                    label="View forging progress"
+                    onPress={expand}
+                  />
+                ) : job.status === "ready" && job.expedition ? (
+                  <Button
+                    label="Open adventure"
+                    tone="gold"
+                    onPress={() => {
+                      onReadForge();
+                      onSelectExpedition(job.expedition!);
+                    }}
+                  />
+                ) : (
+                  <Button
+                    label="Retry forge"
+                    tone="gold"
+                    onPress={() => void forgeAdventure(job.file)}
+                  />
+                )}
+              </section>
+            </RealmFrame>
+          )}
+
+          {items.slice(0, 2).map((expedition) => (
+            <button
+              key={expedition.title}
+              role="button"
+              aria-label={`Open ${expedition.title}`}
+              onClick={() => onSelectExpedition(expedition)}
+              className="css-parchment-scroll-card"
+              type="button"
             >
-              <div className="forge-status-heading">
-                <img
-                  src={
-                    forging && !reducedMotion ? art.nerdEatPdf : art.character
-                  }
-                  alt=""
-                />
-                <div>
-                  <h3>
-                    {forging
-                      ? "Forging adventure"
-                      : job.status === "ready"
-                        ? "Adventure ready!"
-                        : "Could not forge adventure"}
-                  </h3>
-                  <p>{job.file.name}</p>
+              <div className="rivet top-left" aria-hidden="true" />
+              <div className="rivet top-right" aria-hidden="true" />
+              <div className="rivet bottom-left" aria-hidden="true" />
+              <div className="rivet bottom-right" aria-hidden="true" />
+
+              {/* Rolled Scroll with Leaf Icon */}
+              <div className="css-rolled-scroll" aria-hidden="true">
+                <div className="scroll-roll-top" />
+                <div className="scroll-body">
+                  <span className="scroll-leaf">🍃</span>
+                </div>
+                <div className="scroll-roll-bottom" />
+              </div>
+
+              <div className="scroll-card-content stack">
+                <span className="expedition-main-title text">{expedition.title}</span>
+                <span className="expedition-subtitle text">{expedition.file}</span>
+                <div className="expedition-meta-row">
+                  <Icon name="book-open-page-variant-outline" size={14} color="#6e461f" />
+                  <span className="text">{expedition.regions.length} chapters</span>
                 </div>
               </div>
-              <div role={job.status === "failed" ? "alert" : "status"}>
-                {forging ? (
-                  <>
-                    <progress aria-label="Generating study material" />
-                    <p>
-                      You can keep exploring. Your result will appear here. Keep
-                      this tab open.
-                    </p>
-                  </>
-                ) : job.status === "ready" ? (
-                  <p>{job.expedition?.title} is ready to explore.</p>
-                ) : (
-                  <p>{job.error}</p>
-                )}
-              </div>
-              {forging ? (
-                <Button
-                  label="View forging progress"
-                  onPress={expand}
-                />
-              ) : job.status === "ready" && job.expedition ? (
-                <Button
-                  label="Open adventure"
-                  tone="gold"
-                  onPress={() => {
-                    onReadForge();
-                    onSelectExpedition(job.expedition!);
-                  }}
-                />
-              ) : (
-                <Button
-                  label="Retry forge"
-                  tone="gold"
-                  onPress={() => void forgeAdventure(job.file)}
-                />
-              )}
-            </section>
-          </RealmFrame>
-        )}
-        {items.slice(0, 2).map((expedition) => (
-          <ExpeditionCard
-            key={expedition.title}
-            expedition={expedition}
-            onPress={() => onSelectExpedition(expedition)}
-          />
-        ))}
+
+              <span className="card-right-arrow text" aria-hidden="true">›</span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
-const s = {
-  page: { gap: 20 },
-  scroll: {
-    backgroundColor: "#f9edcd",
-    borderWidth: 2,
-    borderColor: "#9a794b",
-    marginLeft: 4,
-    marginRight: 4,
-    marginTop: 8,
-    padding: 16,
-    paddingTop: 23,
-    paddingBottom: 22,
-    gap: 10,
-    borderRadius: 10,
-  },
-  scrollRoll: {
-    position: "absolute",
-    left: -8,
-    right: -8,
-    height: 17,
-    backgroundColor: "#dec08a",
-    borderWidth: 2,
-    borderBottomWidth: 3,
-    borderColor: colors.wood,
-    borderRadius: 12,
-  },
-  rollTop: { top: -9 },
-  rollBottom: { bottom: -9 },
-  rollHighlight: {
-    height: 3,
-    marginTop: 2,
-    marginLeft: 10,
-    marginRight: 10,
-    backgroundColor: "#fff2ce",
-    borderRadius: 3,
-  },
-  forgeHeading: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 8,
-  },
-  forgeTitle: { fontFamily: fonts.heading, fontSize: 22, color: colors.ink },
-  dropZone: {
-    alignItems: "center",
-    gap: 8,
-    padding: 14,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: "#b49b71",
-    borderRadius: 14,
-    backgroundColor: "#fff8e5",
-  },
-  documentEmblem: {
-    width: 49,
-    height: 49,
-    borderRadius: 16,
-    backgroundColor: colors.sage,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#a8b594",
-  },
-  uploadTitle: {
-    fontFamily: fonts.heading,
-    fontSize: 17,
-    lineHeight: "23px",
-    textAlign: "center",
-    color: colors.ink,
-    maxWidth: 290,
-  },
-  browse: {
-    minHeight: 44,
-    width: "100%",
-    maxWidth: 230,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-    backgroundColor: colors.gold,
-    borderWidth: 2,
-    borderBottomWidth: 4,
-    borderColor: colors.edge,
-    borderRadius: 12,
-  },
-  browseText: { fontFamily: fonts.heading, fontSize: 14, color: colors.ink },
-  formats: { ...ui.label, fontSize: 11, textAlign: "center" },
-  continueCard: { gap: 8, marginTop: 6 },
-  continueHeading: {
-    fontFamily: fonts.heading,
-    fontSize: 16,
-    color: colors.teal,
-  },
-  questTitle: {
-    fontFamily: fonts.heading,
-    fontSize: 18,
-    lineHeight: "24px",
-    color: colors.ink,
-  },
-  materialHeading: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: -14,
-  },
-  allLink: {
-    minHeight: 48,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingLeft: 8,
-  },
-  allText: { fontFamily: fonts.heading, fontSize: 12, color: colors.teal },
-  materials: { gap: 10 },
-} satisfies Record<string, CSSProperties>;
+
 function ForgeDialog({
   file,
   reducedMotion,

@@ -719,6 +719,784 @@ p {
 .forge-status progress { width: 100%; height: 12px; accent-color: #3c705f; margin-bottom: 8px; }
 .forge-status [role="alert"] { color: #94362d; }
 .nav-notice { position: absolute; width: 14px; height: 14px; top: 0; right: calc(50% - 32px); border-radius: 50%; border: 2px solid #fff2d5; background: #bf352f; }
+
+/* ==================== IMMERSIVE FANTASY HUB PAGE (PURE CSS ARCHITECTURE) ==================== */
+.hub-page {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 12px 12px 32px;
+  box-sizing: border-box;
+  background: url("/assets/background/hub_wallpaper.webp") no-repeat center top / cover;
+  background-attachment: local;
+  min-height: 100%;
+}
+
+/* Reusable 3D Gold Fantasy Action Button */
+.css-gold-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffe575 0%, #fab72b 48%, #e38d08 100%);
+  border: 2px solid #5a2c03;
+  border-bottom: 5px solid #3d1b01;
+  color: #381e04;
+  font-family: var(--game-font-family), Rubik, sans-serif;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0.3px;
+  box-shadow: 0 5px 14px rgba(45, 22, 3, 0.45), inset 0 1px 2px rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: transform 0.1s ease, border-bottom-width 0.1s ease, box-shadow 0.1s ease;
+  user-select: none;
+  text-decoration: none;
+}
+.css-gold-btn:hover {
+  background: linear-gradient(180deg, #ffeb8a 0%, #ffc03d 48%, #ed970e 100%);
+  box-shadow: 0 6px 16px rgba(45, 22, 3, 0.5), inset 0 1px 3px rgba(255, 255, 255, 0.8);
+}
+.css-gold-btn:active {
+  transform: translateY(3px);
+  border-bottom-width: 2px;
+  box-shadow: 0 2px 6px rgba(45, 22, 3, 0.35);
+}
+.css-gold-btn:disabled {
+  opacity: 0.65;
+  filter: grayscale(0.4);
+  cursor: not-allowed;
+  transform: none;
+}
+.css-gold-btn .btn-chevron {
+  font-size: 18px;
+  font-weight: 900;
+  color: #8f5008;
+}
+
+/* ==================== CARD 1: THE STUDY FORGE ==================== */
+.css-forge-wrapper {
+  position: relative;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  filter: drop-shadow(0 8px 18px rgba(18, 12, 6, 0.45));
+}
+
+/* Left & Right Stone Pillars */
+.css-forge-wrapper .pillar {
+  position: absolute;
+  top: 14px;
+  bottom: 12px;
+  width: 28px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+.css-forge-wrapper .pillar.left {
+  left: 2px;
+}
+.css-forge-wrapper .pillar.right {
+  right: 2px;
+}
+
+/* Brazier & Animated Flame */
+.css-forge-wrapper .torch-flame {
+  width: 18px;
+  height: 24px;
+  margin-bottom: -4px;
+  border-radius: 50% 50% 35% 35% / 60% 60% 40% 40%;
+  background: radial-gradient(circle at 50% 75%, #ffffff 0%, #ffec6e 30%, #ff8a00 70%, #d83200 100%);
+  box-shadow: 0 0 14px #ffaa00, 0 0 24px rgba(255, 100, 0, 0.6);
+  animation: torchFlicker 1.8s infinite alternate ease-in-out;
+  transform-origin: bottom center;
+}
+@keyframes torchFlicker {
+  0% { transform: scale(0.92, 0.95) rotate(-2deg); filter: brightness(0.95); }
+  50% { transform: scale(1.05, 1.08) rotate(2deg); filter: brightness(1.1); }
+  100% { transform: scale(0.98, 1.02) rotate(-1deg); filter: brightness(1.0); }
+}
+
+.css-forge-wrapper .torch-brazier {
+  width: 26px;
+  height: 12px;
+  background: linear-gradient(180deg, #44474b 0%, #25282c 60%, #15171a 100%);
+  border: 1.5px solid #6b7077;
+  border-radius: 4px 4px 8px 8px;
+  box-shadow: inset 0 2px 3px rgba(255, 180, 50, 0.5), 0 2px 4px rgba(0,0,0,0.5);
+  position: relative;
+  z-index: 2;
+}
+
+.css-forge-wrapper .pillar-column {
+  flex: 1;
+  width: 22px;
+  background: linear-gradient(90deg, #7c828b 0%, #a4abb5 35%, #cbd2dc 50%, #8e95a0 80%, #5d626a 100%);
+  border: 1.5px solid #454950;
+  border-top: 3px solid #36393e;
+  border-bottom: 4px solid #2b2e33;
+  box-shadow: inset 1px 0 2px rgba(255,255,255,0.4), inset -1px 0 2px rgba(0,0,0,0.4);
+  position: relative;
+}
+.css-forge-wrapper .pillar-column::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 6px;
+  right: 6px;
+  border-left: 1px solid rgba(0,0,0,0.25);
+  border-right: 1px solid rgba(255,255,255,0.3);
+}
+
+/* Pennant Banner on Pillars */
+.css-forge-wrapper .pillar-banner {
+  position: absolute;
+  top: 32px;
+  width: 18px;
+  height: 38px;
+  background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 60%, #172554 100%);
+  border: 1.5px solid #eab308;
+  clip-path: polygon(0 0, 100% 0, 100% 85%, 50% 100%, 0 85%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.45);
+  z-index: 4;
+}
+.css-forge-wrapper .pillar.left .pillar-banner {
+  left: 3px;
+}
+.css-forge-wrapper .pillar.right .pillar-banner {
+  right: 3px;
+}
+.css-forge-wrapper .banner-star {
+  font-size: 10px;
+  color: #fef08a;
+  margin-top: -6px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+
+/* Vines on Pillar */
+.css-forge-wrapper .pillar-vines {
+  position: absolute;
+  bottom: 8px;
+  width: 14px;
+  height: 24px;
+  background: radial-gradient(circle at 30% 30%, #4ade80 0%, #15803d 70%, transparent 80%);
+  opacity: 0.85;
+}
+.css-forge-wrapper .pillar.left .pillar-vines { left: 4px; }
+.css-forge-wrapper .pillar.right .pillar-vines { right: 4px; }
+
+/* Top Arched Wooden Banner */
+.forge-header-arch {
+  position: relative;
+  z-index: 4;
+  width: calc(100% - 24px);
+  margin-bottom: -10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.arch-star-crest {
+  font-size: 22px;
+  color: #ffd84d;
+  text-shadow: 0 0 10px #ffb300, 0 2px 4px rgba(0,0,0,0.7);
+  margin-bottom: -8px;
+  z-index: 5;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+}
+.arch-content {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 18px 10px;
+  background: linear-gradient(180deg, #6c3713 0%, #4a220a 55%, #351605 100%);
+  border: 2.5px solid #995c29;
+  border-bottom: 4px solid #230c02;
+  border-radius: 20px 20px 8px 8px;
+  box-shadow: inset 0 2px 3px rgba(255, 210, 140, 0.4), 0 4px 10px rgba(0,0,0,0.5);
+  box-sizing: border-box;
+}
+.arch-book-icon {
+  font-size: 20px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+}
+.forge-title {
+  font-family: var(--game-font-family), Rubik, sans-serif;
+  font-size: 19px;
+  font-weight: 900;
+  color: #fff1c9;
+  letter-spacing: 0.5px;
+  text-shadow: 0 2px 4px #1c0a02, 0 0 8px rgba(255, 200, 100, 0.3);
+}
+
+/* Main Parchment Board */
+.forge-parchment-board {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #fff9e6 0%, #faecc5 40%, #edd49a 100%);
+  border: 3.5px solid #633311;
+  border-radius: 14px;
+  padding: 24px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  box-shadow: inset 0 0 16px rgba(115, 65, 20, 0.25), 0 6px 14px rgba(0,0,0,0.3);
+}
+
+/* Rivets / Studs on Parchment Corners */
+.rivet {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ffd276 0%, #9e641c 65%, #4a2604 100%);
+  border: 1px solid #361701;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.7);
+  z-index: 5;
+}
+.rivet.top-left { top: 8px; left: 8px; }
+.rivet.top-right { top: 8px; right: 8px; }
+.rivet.bottom-left { bottom: 8px; left: 8px; }
+.rivet.bottom-right { bottom: 8px; right: 8px; }
+
+/* Halo & Document Upload Graphic */
+.forge-halo-emblem {
+  position: relative;
+  width: 74px;
+  height: 74px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+}
+.halo-circle {
+  position: relative;
+  width: 66px;
+  height: 66px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(134, 239, 172, 0.35) 0%, rgba(52, 211, 153, 0.15) 55%, transparent 75%);
+  border: 2px dashed #10b981;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: haloPulse 3s infinite alternate ease-in-out;
+}
+@keyframes haloPulse {
+  0% { transform: scale(0.96); box-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
+  100% { transform: scale(1.04); box-shadow: 0 0 20px rgba(16, 185, 129, 0.55); }
+}
+.halo-sparkle {
+  position: absolute;
+  font-size: 11px;
+  color: #34d399;
+  filter: drop-shadow(0 0 4px #10b981);
+}
+.halo-sparkle.s1 { top: -4px; left: 10px; }
+.halo-sparkle.s2 { top: 2px; right: -2px; }
+.halo-sparkle.s3 { bottom: -2px; left: 4px; }
+.halo-sparkle.s4 { bottom: 6px; right: -4px; }
+
+.upload-doc-graphic {
+  position: relative;
+  width: 32px;
+  height: 38px;
+  background: #ffffff;
+  border: 2px solid #059669;
+  border-radius: 4px 10px 4px 4px;
+  box-shadow: 0 3px 6px rgba(5, 150, 105, 0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.upload-doc-graphic .doc-page {
+  width: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 2px;
+}
+.upload-doc-graphic .doc-line {
+  height: 2px;
+  background: #a7f3d0;
+  border-radius: 1px;
+}
+.upload-doc-graphic .doc-line.l1 { width: 100%; }
+.upload-doc-graphic .doc-line.l2 { width: 65%; }
+.upload-doc-graphic .doc-arrow {
+  font-size: 12px;
+  color: #059669;
+  font-weight: 900;
+  margin-top: 2px;
+}
+
+.forge-upload-heading {
+  font-family: var(--game-font-family), Rubik, sans-serif;
+  font-size: 16px;
+  font-weight: 900;
+  color: #381e05;
+  text-align: center;
+  line-height: 1.25;
+  max-width: 90%;
+  word-break: break-word;
+}
+.forge-main-btn {
+  width: 100%;
+  max-width: 280px;
+  min-height: 48px;
+  padding: 0 18px;
+}
+.forge-file-hint {
+  font-family: var(--game-font-family), sans-serif;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #785227;
+  letter-spacing: 0.2px;
+}
+
+/* Stepped Cobblestone Foundation */
+.forge-stone-steps {
+  width: calc(100% - 10px);
+  margin-top: -6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 1;
+}
+.step-tier {
+  height: 7px;
+  background: linear-gradient(90deg, #595f68 0%, #878e99 25%, #a6aeb8 50%, #878e99 75%, #595f68 100%);
+  border: 1.5px solid #373a40;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.4), 0 3px 6px rgba(0,0,0,0.4);
+}
+.step-tier.top {
+  width: 96%;
+  border-radius: 4px;
+}
+.step-tier.bottom {
+  width: 100%;
+  height: 9px;
+  border-radius: 4px 4px 8px 8px;
+  margin-top: -1px;
+}
+
+/* ==================== CARD 2: CONTINUE ADVENTURE ==================== */
+.css-continue-card {
+  position: relative;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #572d11 0%, #3e1b07 100%);
+  border: 3.5px solid #78441c;
+  border-radius: 18px;
+  padding: 12px 10px 14px;
+  filter: drop-shadow(0 8px 18px rgba(18, 12, 6, 0.45));
+  box-shadow: inset 0 2px 4px rgba(255, 200, 130, 0.3), 0 5px 12px rgba(0,0,0,0.4);
+}
+
+/* Metal Corner Brackets */
+.corner-bracket {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  z-index: 6;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: #ffdc73;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+.corner-bracket.top-left {
+  top: 2px;
+  left: 2px;
+  border-top: 3px solid #d49524;
+  border-left: 3px solid #d49524;
+  border-top-left-radius: 12px;
+}
+.corner-bracket.top-right {
+  top: 2px;
+  right: 2px;
+  border-top: 3px solid #d49524;
+  border-right: 3px solid #d49524;
+  border-top-right-radius: 12px;
+}
+.corner-bracket.bottom-left {
+  bottom: 2px;
+  left: 2px;
+  border-bottom: 3px solid #d49524;
+  border-left: 3px solid #d49524;
+  border-bottom-left-radius: 12px;
+}
+.corner-bracket.bottom-right {
+  bottom: 2px;
+  right: 2px;
+  border-bottom: 3px solid #d49524;
+  border-right: 3px solid #d49524;
+  border-bottom-right-radius: 12px;
+}
+.corner-leaves {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: radial-gradient(circle, #4ade80 20%, #166534 80%);
+  border-radius: 50% 0 50% 0;
+  opacity: 0.9;
+}
+.corner-bracket.bottom-left .corner-leaves { bottom: 2px; left: 16px; transform: rotate(-25deg); }
+.corner-bracket.bottom-right .corner-leaves { bottom: 2px; right: 16px; transform: rotate(115deg); }
+
+/* Forest Green Ribbon Banner */
+.continue-ribbon-banner {
+  position: relative;
+  z-index: 5;
+  width: calc(100% - 16px);
+  margin: -18px auto 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ribbon-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 14px 7px;
+  background: linear-gradient(180deg, #1ea34d 0%, #15803d 50%, #0d5426 100%);
+  border: 2px solid #86efac;
+  border-bottom: 3px solid #052e16;
+  border-radius: 8px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.4);
+}
+.ribbon-flag-icon {
+  font-size: 16px;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
+}
+.continue-title {
+  font-family: var(--game-font-family), Rubik, sans-serif;
+  font-size: 16px;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 0.4px;
+  text-shadow: 0 2px 3px rgba(0, 30, 10, 0.8);
+}
+.ribbon-fold {
+  width: 12px;
+  height: 24px;
+  background: #093c1b;
+  position: relative;
+  z-index: -1;
+}
+.ribbon-fold.left {
+  clip-path: polygon(100% 0, 100% 100%, 0 50%);
+  margin-right: -4px;
+}
+.ribbon-fold.right {
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+  margin-left: -4px;
+}
+
+/* Interior Parchment with Castle Decor */
+.continue-parchment-inner {
+  position: relative;
+  background: linear-gradient(180deg, #fffcf0 0%, #f7edcf 45%, #edd7a3 100%);
+  border: 2px solid #804a1c;
+  border-radius: 12px;
+  padding: 14px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: inset 0 0 14px rgba(115, 65, 20, 0.2);
+  overflow: hidden;
+}
+.parchment-castle-decor {
+  position: absolute;
+  right: -10px;
+  top: -10px;
+  bottom: 0;
+  width: 160px;
+  background: radial-gradient(circle at 80% 40%, rgba(200, 160, 100, 0.25) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.continue-body-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+  z-index: 2;
+}
+
+/* CSS RPG Quest Book */
+.css-quest-book {
+  position: relative;
+  width: 48px;
+  height: 52px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 4px 8px rgba(35, 15, 5, 0.45));
+}
+.book-cover {
+  width: 42px;
+  height: 50px;
+  background: linear-gradient(135deg, #a8271a 0%, #75140b 60%, #4a0903 100%);
+  border: 2px solid #eab308;
+  border-radius: 4px 10px 10px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset -2px 0 4px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.4);
+}
+.book-spine {
+  position: absolute;
+  left: 0;
+  top: 1px;
+  bottom: 1px;
+  width: 8px;
+  background: #3b0702;
+  border-radius: 4px 0 0 4px;
+  border-right: 1.5px solid #ca8a04;
+}
+.book-star {
+  font-size: 16px;
+  color: #fef08a;
+  text-shadow: 0 0 6px #eab308, 0 1px 2px rgba(0,0,0,0.8);
+}
+.book-sparkle {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  font-size: 15px;
+  animation: sparkleTwinkle 2s infinite ease-in-out;
+}
+@keyframes sparkleTwinkle {
+  0%, 100% { transform: scale(0.8) rotate(0deg); opacity: 0.7; }
+  50% { transform: scale(1.15) rotate(15deg); opacity: 1; }
+}
+
+.continue-quest-details {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+.quest-main-title {
+  font-family: var(--game-font-family), Rubik, sans-serif;
+  font-size: 17px;
+  font-weight: 900;
+  color: #381e04;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.2px;
+}
+.quest-chapter-label {
+  font-family: var(--game-font-family), sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  color: #7b4f23;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.continue-big-btn {
+  width: 100%;
+  min-height: 50px;
+}
+
+/* ==================== SECTION 3: STUDY SCROLLS ==================== */
+.css-scrolls-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+.scrolls-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px;
+}
+
+/* Carved Wooden Plank Badge */
+.css-wooden-scrolls-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px 7px;
+  background: linear-gradient(180deg, #6c3b17 0%, #4a240c 55%, #351706 100%);
+  border: 2px solid #995c29;
+  border-bottom: 3.5px solid #230d02;
+  border-radius: 12px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,220,160,0.4);
+}
+.badge-scroll-icon {
+  font-size: 18px;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
+}
+.badge-title {
+  font-family: var(--game-font-family), Rubik, sans-serif;
+  font-size: 15px;
+  font-weight: 900;
+  color: #fff1c7;
+  letter-spacing: 0.3px;
+  text-shadow: 0 1px 3px #1f0b02;
+}
+
+/* View All Dark Pill Button */
+.css-view-all-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: linear-gradient(180deg, #42220d 0%, #291204 100%);
+  border: 1.5px solid #75441d;
+  border-radius: 20px;
+  color: #ffeed1;
+  font-family: var(--game-font-family), sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+  transition: transform 0.1s ease, background 0.1s ease;
+}
+.css-view-all-btn:hover {
+  background: linear-gradient(180deg, #4f2b13 0%, #351907 100%);
+}
+.css-view-all-btn:active {
+  transform: scale(0.96);
+}
+
+.scroll-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Parchment Scroll Card */
+.css-parchment-scroll-card {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px 12px 14px;
+  background: linear-gradient(180deg, #fffcf2 0%, #f8eed4 50%, #edd8a6 100%);
+  border: 2.5px solid #75421a;
+  border-radius: 14px;
+  box-shadow: 0 4px 10px rgba(25, 15, 6, 0.3), inset 0 0 10px rgba(115, 65, 20, 0.15);
+  cursor: pointer;
+  box-sizing: border-box;
+  text-align: left;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.css-parchment-scroll-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(25, 15, 6, 0.38);
+}
+.css-parchment-scroll-card:active {
+  transform: translateY(1px);
+}
+
+/* CSS Rolled Scroll Graphic */
+.css-rolled-scroll {
+  position: relative;
+  width: 38px;
+  height: 48px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.scroll-roll-top,
+.scroll-roll-bottom {
+  width: 32px;
+  height: 6px;
+  background: linear-gradient(90deg, #824716 0%, #d49524 50%, #824716 100%);
+  border: 1px solid #4a2406;
+  border-radius: 3px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+.scroll-body {
+  flex: 1;
+  width: 26px;
+  background: linear-gradient(90deg, #f3e3ba 0%, #fffbf0 50%, #ebd39b 100%);
+  border-left: 1.5px solid #824716;
+  border-right: 1.5px solid #824716;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.scroll-leaf {
+  font-size: 13px;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3));
+}
+
+.scroll-card-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.expedition-main-title {
+  font-family: var(--game-font-family), Rubik, sans-serif;
+  font-size: 15.5px;
+  font-weight: 900;
+  color: #381e04;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.expedition-subtitle {
+  font-family: var(--game-font-family), sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #7b5329;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.expedition-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--game-font-family), sans-serif;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #5c3b1c;
+  margin-top: 1px;
+}
+
+.card-right-arrow {
+  font-size: 24px;
+  font-weight: 900;
+  color: #9c6328;
+  padding-left: 6px;
+}
+
 .battle-screen {
   position: absolute;
   inset: 0;
