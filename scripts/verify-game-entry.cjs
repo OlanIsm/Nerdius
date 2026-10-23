@@ -3,8 +3,7 @@ const fs = require('node:fs');
 const { chromium } = require('@playwright/test');
 async function exitBattle(page) {
   await page.getByRole('button', { name: 'Battle menu', exact: true }).click();
-  await page.getByRole('button', { name: 'Exit', exact: true }).click();
-  await page.getByRole('button', { name: 'Confirm exit', exact: true }).click();
+  await page.getByRole('button', { name: 'Save and exit', exact: true }).click();
   await page.getByRole('button', { name: 'Start Adventure', exact: true }).waitFor();
 }
 const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
@@ -123,6 +122,8 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
       await page.getByRole('button', { name: 'Continue Adventure', exact: true }).click();
       if (slowStart) delayStart = true;
       await page.getByRole('button', { name: 'Start Adventure', exact: true }).click();
+      const savedProgressDialog = page.getByRole('dialog').filter({ has: page.getByRole('heading', { name: 'Continue from last saved' }) });
+      if (await savedProgressDialog.count()) await savedProgressDialog.getByRole('button', { name: 'Continue', exact: true }).click();
       if (slowStart) await page.locator('.gate.closing.closed').waitFor({ timeout: 1000 });
       await page.getByTestId('gate-loading').waitFor();
       const gate = await page.getByTestId('gate-loading').boundingBox();
@@ -152,6 +153,9 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
     const gemsBeforeBattle = state.gems;
     await page.setViewportSize({ width: 1024, height: 1280 });
     await enter(true);
+    const bank = state.expeditions[0].regions[0].questionBank;
+    let localAnswered = state.battle.answers.length;
+    let localCorrect = state.battle.answers.filter(answer => answer.correct).length;
     await page.waitForFunction(() => window.__playedSounds.some(src => src.endsWith('/audio/chirping.mp3')));
     await page.setViewportSize({ width: 430, height: 932 });
     const world = page.getByTestId('phaser-world');
@@ -201,8 +205,6 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
     assert.equal(await world.getAttribute('data-distance'), distance, 'pause menu freezes traversal');
     await page.screenshot({ path: 'test-results/combat-menu-mobile.png' });
     await page.getByRole('button', { name: 'Restart', exact: true }).click();
-    await page.getByRole('button', { name: 'Cancel', exact: true }).click();
-    await page.getByRole('button', { name: 'Exit', exact: true }).click();
     await page.getByRole('button', { name: 'Cancel', exact: true }).click();
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
     await page.screenshot({ path: 'test-results/phaser-game.png' });
@@ -260,9 +262,9 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
       const idleFrame = await world.getAttribute('data-walk-frame');
       await page.waitForTimeout(150);
       assert.notEqual(await world.getAttribute('data-walk-frame'), idleFrame, 'idle animation advances during encounters');
-      const currentQuestion = state.expeditions[0].regions[0].questionBank[state.battle.answers.length];
+      const currentQuestion = bank[localAnswered];
       await page.waitForFunction(
-        prompt => document.querySelector('.battle-quiz legend')?.textContent === prompt,
+        prompt => document.querySelector('.battle-quiz legend')?.textContent.includes(prompt),
         currentQuestion.prompt,
       );
       assert(
@@ -307,20 +309,29 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
         await page.setViewportSize({ width: 430, height: 932 });
         await page.screenshot({ path: 'test-results/phaser-idle.png' });
       }
-      const bank = state.expeditions[0].regions[0].questionBank;
       const target = (encounter + 1) * 2;
       const dingsBeforeDrops = encounter === 0
         ? await page.evaluate(() => window.__playedSounds.filter(src => src.endsWith('/audio/ding.m4a')).length)
         : 0;
-      while (state.battle.answers.length < target) {
-        const question = bank[state.battle.answers.length];
+      while (localAnswered < target) {
+        const question = bank[localAnswered];
         await page.setViewportSize({ width: 360, height: 640 });
         await assertStaticQuiz('Submit answer');
         await page.setViewportSize({ width: 430, height: 932 });
+        await page.locator('.battle-question-bubble').click({ force: true });
+        assert(
+          (await page.locator('.battle-question-text').textContent()).includes(question.prompt),
+          'Clicking the speech bubble reveals the complete prompt immediately',
+        );
+        const answerRequestsBefore = actions.filter(action => action.action === 'answer').length;
         await page.getByRole('radio', { name: question.options[question.answerIndex], exact: true }).check();
         await page.getByRole('button', { name: 'Submit answer', exact: true }).click();
         await page.getByText('Correct!', { exact: true }).waitFor();
-        if (state.battle.correct > 0 && state.battle.correct % 2 === 0) {
+        assert.equal(actions.filter(action => action.action === 'answer').length, answerRequestsBefore, 'Local answer grading sends no per-answer request');
+        assert(await page.getByTestId('battle-timer').isVisible(), 'Quiz timer is visible in the battle header');
+        localAnswered++;
+        localCorrect++;
+        if (localCorrect > 0 && localCorrect % 2 === 0) {
           await page.waitForFunction(() => {
             const health = document.querySelector('#enemy-hp');
             return health && health.value === 0;
@@ -330,7 +341,7 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
             'Enemy bar reaches zero while the defeated enemy is still animating',
           );
         }
-        if (encounter === 0 && state.battle.answers.length === 1) {
+        if (encounter === 0 && localAnswered === 1) {
           await page.waitForFunction(() => document.querySelector('[data-testid="phaser-world"]').dataset.heroTexture === 'olan-attack-live');
           await page.screenshot({ path: 'test-results/olan-attack.png' });
         }
@@ -338,7 +349,7 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
         await page.setViewportSize({ width: 360, height: 640 });
         await assertStaticQuiz('Next');
         await page.setViewportSize({ width: 430, height: 932 });
-        if (encounter === 0 && state.battle.answers.length === 1) {
+        if (encounter === 0 && localAnswered === 1) {
           await page.waitForFunction(() => document.querySelector('[data-testid="battle-streak"]'));
           assert(
             await page.evaluate(() => window.__playedSounds.some(src => src.includes('olan-attack-sfx'))),
@@ -352,7 +363,7 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
           await page.keyboard.press('Escape');
           await page.setViewportSize({ width: 430, height: 932 });
         }
-        if (state.battle.answers.length % 2 === 0) {
+        if (localAnswered % 2 === 0) {
           await page.waitForFunction(() => document.querySelector('[data-testid="phaser-world"]').dataset.enemies === '0');
           assert(
             await page.evaluate(() => window.__playedSounds.some(src => src.endsWith('/audio/impact-thud.mp3'))),
@@ -373,10 +384,10 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
           }
         }
         await page.getByRole('button', { name: 'Next', exact: true }).click();
-        if (encounter === 0 && state.battle.answers.length === 1) {
+        if (encounter === 0 && localAnswered === 1) {
           assert(
-            await page.evaluate(() => window.__playedSounds.some(src => src.endsWith('/audio/damage-hit.mp3'))),
-            'Enemy flash plays the damage-hit sound',
+            await page.evaluate(() => window.__playedSounds.some(src => src.endsWith('/audio/correct-kalimba.m4a'))),
+            'Correct answer plays the matching feedback sound',
           );
         }
       }
@@ -406,7 +417,9 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
     assert.equal(state.gems, gemsBeforeBattle + 250);
     const goldBeforeFailure = state.gold;
     await page.getByRole('button', { name: 'Retry chapter', exact: true }).click();
-    const bank = state.expeditions[0].regions[0].questionBank;
+    localAnswered = 0;
+    localCorrect = 0;
+    await page.locator('.battle-question-bubble').click({ force: true });
     await page.getByRole('radio', { name: bank[0].options[(bank[0].answerIndex + 1) % 4], exact: true }).check();
     await page.getByRole('button', { name: 'Submit answer', exact: true }).click();
     await page.getByText('Not quite', { exact: true }).waitFor();
@@ -417,40 +430,45 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
     assert.equal(await page.locator('#player-hp').getAttribute('value'), '450');
     await page.getByRole('button', { name: 'Next', exact: true }).click();
     for (const question of bank.slice(1, 3)) {
+      await page.locator('.battle-question-bubble').click({ force: true });
       await page.getByRole('radio', { name: question.options[question.answerIndex], exact: true }).check();
       await page.getByRole('button', { name: 'Submit answer', exact: true }).click();
       await page.getByText('Correct!', { exact: true }).waitFor();
       await page.getByRole('button', { name: 'Next', exact: true }).click();
     }
+    localAnswered = 3;
+    localCorrect = 2;
     await page.waitForFunction(() => document.querySelector('[data-testid="phaser-world"]').dataset.phase === 'walking');
     assert.equal(await page.locator('#enemy-hp').count(), 0);
     const gemsBeforeExit = state.gems;
     rejectExit = true;
     await page.getByRole('button', { name: 'Battle menu', exact: true }).click();
-    await page.getByRole('button', { name: 'Exit', exact: true }).click();
-    await page.getByRole('button', { name: 'Confirm exit', exact: true }).click();
+    await page.getByRole('button', { name: 'Save and exit', exact: true }).click();
     await page.getByRole('alert').getByText('Could not exit battle. Try again.', { exact: true }).waitFor();
-    assert.equal(state.battle.answers.length, 3, 'Failed exit preserves accepted answers and pending drops');
+    assert.equal(state.battle.answers.length, 0, 'Failed save does not modify the server checkpoint');
+    assert.equal(await page.locator('#player-hp').getAttribute('value'), '450', 'Failed save keeps local answers in the battle');
     assert.equal(await page.locator('canvas').count(), 1, 'Failed exit stays in battle');
-    await page.getByRole('button', { name: 'Cancel', exact: true }).click();
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
     const exitedId = state.battle.id;
     const earnedGold = state.gold;
     const chapterProgress = state.expeditions[0].progress;
     await exitBattle(page);
     await page.getByRole('button', { name: 'Start Adventure', exact: true }).waitFor();
-    assert.equal(state.battle, undefined, 'Exit clears saved attempt');
+    assert.equal(state.battle.id, exitedId, 'Save and exit preserves the active attempt');
+    assert.equal(state.battle.answers.length, 3, 'Save and exit batches the local answers');
     assert.equal(state.gold, earnedGold);
     assert.equal(state.gems, gemsBeforeExit, "Exit discards pending gems");
     assert.equal(state.expeditions[0].progress, chapterProgress);
     await page.reload({ waitUntil: 'networkidle' });
     await page.getByRole('button', { name: 'Continue as guest', exact: true }).click();
     await enter();
-    await page.getByRole('button', { name: 'Submit answer', exact: true }).waitFor();
-    assert.notEqual(state.battle.id, exitedId);
-    assert.equal(state.battle.answers.length, 0, 'Exit cannot resume after reload');
-    assert.equal(await page.locator('#player-hp').getAttribute('value'), '500');
-    await page.getByRole('radio', { name: bank[0].options[(bank[0].answerIndex + 1) % 4], exact: true }).check();
+    await page.getByRole('button', { name: 'Next', exact: true }).waitFor();
+    assert.equal(state.battle.id, exitedId, 'Continue from last saved resumes the same attempt');
+    assert.equal(state.battle.answers.length, 3);
+    assert.equal(await page.locator('#player-hp').getAttribute('value'), '450');
+    await page.getByRole('button', { name: 'Next', exact: true }).click();
+    await page.locator('.battle-question-bubble').click({ force: true });
+    await page.getByRole('radio', { name: bank[3].options[(bank[3].answerIndex + 1) % 4], exact: true }).check();
     await page.getByRole('button', { name: 'Submit answer', exact: true }).click();
     await page.getByText('Not quite', { exact: true }).waitFor();
     const oldBattleId = state.battle.id;
@@ -461,21 +479,28 @@ const state = { gold: 1450, gems: 1450, xp: 1771, favor: 3,
     assert.notEqual(state.battle.id, oldBattleId);
     assert.equal(state.battle.answers.length, 0);
     assert.equal(await page.locator('#player-hp').getAttribute('value'), '500');
-    for (const question of bank) {
+    localAnswered = 0;
+    localCorrect = 0;
+    for (const [index, question] of bank.entries()) {
+      await page.locator('.battle-question-bubble').click({ force: true });
       await page.getByRole('radio', { name: question.options[(question.answerIndex + 1) % 4], exact: true }).check();
       await page.getByRole('button', { name: 'Submit answer', exact: true }).click();
       await page.getByText('Not quite', { exact: true }).waitFor();
       await assertStaticQuiz('Next');
-      if (state.battle.answers.length === 1) await page.screenshot({ path: 'test-results/combat-correction-mobile.png' });
+      localAnswered++;
+      if (localAnswered === 1) await page.screenshot({ path: 'test-results/combat-correction-mobile.png' });
       await page.locator('.feedback-correction').getByText(question.options[question.answerIndex], { exact: false }).waitFor();
       await page.getByRole('button', { name: 'Next', exact: true }).click();
     }
-    await page.getByTestId('fight-status').getByText('Defeated', { exact: true }).waitFor();
+    await page.getByTestId('fight-status').getByText('Adventure over', { exact: true }).waitFor();
     assert.equal(await page.locator('#player-hp').getAttribute('value'), '0');
+    assert.equal(state.battle.status, 'failed', 'all-wrong attempt is saved as a defeat');
     assert.equal(state.gold, goldBeforeFailure, 'Defeat cannot grant rewards');
     await page.screenshot({ path: 'test-results/combat-defeat-mobile.png' });
     await exitBattle(page);
     assert.equal(await page.locator('canvas').count(), 0, 'engine destroyed on exit');
+    localAnswered = 0;
+    localCorrect = 0;
     await page.getByRole('button', { name: 'Back', exact: true }).click();
     await page.getByRole('button', { name: 'Back', exact: true }).click();
     await page.getByRole('tab', { name: 'Hub', exact: true }).click();

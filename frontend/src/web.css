@@ -951,6 +951,23 @@ p {
   box-shadow: none;
   outline: none;
 }
+.battle-quiz-metrics {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: auto;
+}
+.battle-timer {
+  min-width: 62px;
+  padding: 7px 9px;
+  border: 2px solid #735034;
+  border-radius: 10px;
+  background: #fff1d4;
+  color: #352d26;
+  font: 16px/1 Rubik_700Bold;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
 .battle-heading {
   flex: 1;
   min-width: 0;
@@ -1302,10 +1319,8 @@ body :not(.icon) {
 }
 body :is(button, [role="button"], select, textarea, input:not([type="radio"]):not([type="checkbox"])) {
   border-radius: 10px 12px 9px 11px / 11px 9px 12px 10px;
-  outline: 1px solid #58442a24;
-  outline-offset: 1px;
 }
-body :is(.game-button, .battle-header, .battle-footer, .battle-menu-card, .settings-panel, .chapter-card, .quiz-option, .feedback-explanation, .badge, .loot-card, dialog) {
+body :is(.game-button, .battle-header, .battle-footer, .battle-menu-card, .settings-panel, .chapter-card, .quiz-option, .feedback-explanation, .badge, .loot-card, dialog):not(button):not([role="button"]) {
   border-radius: 12px 14px 11px 13px / 13px 11px 14px 12px;
   outline: 1px solid #58442a24;
   outline-offset: 1px;

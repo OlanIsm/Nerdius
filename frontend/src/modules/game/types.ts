@@ -34,6 +34,7 @@ export type GameData = {
   battle?: BattleView | null;
 };
 export type BattleQuestion = { id: string; prompt: string; options: string[]; sourcePage: number };
+export type GradedBattleQuestion = BattleQuestion & { answerIndex: number; explanation: string };
 export type BattleView = {
   id: string; expeditionId: string; chapter: number;
   status: "active" | "passed" | "failed";
@@ -42,6 +43,7 @@ export type BattleView = {
   goldReward: number; gemsReward?: number; xpReward: number;
   pendingGold: number; pendingGems: number;
   answers: { questionId: string; selectedIndex: number; correct: boolean }[];
+  questionBank: GradedBattleQuestion[];
   question: BattleQuestion | null;
   feedback: (BattleQuestion & { questionId: string; selectedIndex: number; correct: boolean; answerIndex: number; explanation: string }) | null;
 };

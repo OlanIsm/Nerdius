@@ -5,6 +5,7 @@ import type { WorldControls } from "../game/PhaserWorld";
 import { GameState, type GamePhase } from "../game/types";
 import type { ScreenProps } from "../types";
 import type { BattleView } from "../modules/game/types";
+import { addLocalAnswer, clearBattleDraft, hasBattleAnswerBank, readBattleDraft, withLocalAnswers, writeBattleDraft } from "../modules/game/localBattle";
 import { BattleQuiz } from "../components/BattleQuiz";
 import {
   playChapterCompleteSound,
@@ -49,22 +50,21 @@ const status: Record<GamePhase, string> = {
 export function BattleScreen({
   navigate,
   onComplete,
-  onAnswer,
   onRestart,
   onExit,
-  battle,
+  battle: serverBattle,
   title,
   tutorial,
 }: ScreenProps & {
   battle: BattleView | null;
   title: string;
   tutorial: boolean;
-  onAnswer: (questionId: string, selectedIndex: number) => Promise<void>;
-  onComplete: () => Promise<void>;
+  onComplete: (answers: { questionId: string; selectedIndex: number }[]) => Promise<BattleView | undefined>;
   onRestart: () => Promise<void>;
-  onExit: () => Promise<void>;
+  onExit: (answers: { questionId: string; selectedIndex: number }[]) => Promise<BattleView | undefined>;
 }) {
   const reducedMotion = useReducedMotion();
+  const [battle, setBattle] = useState<BattleView | null>(serverBattle);
   const battleReady = battle !== null;
   const [phase, setPhase] = useState<
     "closing" | "loading" | "opening" | "ready"
@@ -77,9 +77,10 @@ export function BattleScreen({
   const [WorldRenderer, setWorldRenderer] =
     useState<typeof import("../game/PhaserWorld").PhaserWorld>();
   const [loadError, setLoadError] = useState(false);
+  const [backendContractError, setBackendContractError] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [, render] = useState(0);
-  const [menu, setMenu] = useState<"pause" | "restart" | "exit" | null>(null);
+  const [menu, setMenu] = useState<"pause" | "restart" | null>(null);
   const [answering, setAnswering] = useState(false);
   const [attackInProgress, setAttackInProgress] = useState(false);
   const [streak, setStreak] = useState(0);
@@ -87,6 +88,10 @@ export function BattleScreen({
   const menuDialog = useRef<HTMLDialogElement>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string>();
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const [timerRunning, setTimerRunning] = useState(false);
+  const elapsedMsRef = useRef(0);
+  const timerStartedAt = useRef<number | null>(null);
   const recorded = useRef(false);
   const chapterCompleteSoundPlayed = useRef(false);
   const submittedAnswerKey = useRef<string | undefined>(undefined);
@@ -101,6 +106,51 @@ export function BattleScreen({
   );
   const reportChange = useCallback(() => render((value) => value + 1), []);
   const reportError = useCallback(() => setLoadError(true), []);
+  const startQuizTimer = useCallback(() => {
+    if (timerStartedAt.current !== null || !battle?.question) return;
+    timerStartedAt.current = performance.now();
+    setTimerRunning(true);
+  }, [battle?.question]);
+  const pauseQuizTimer = useCallback(() => {
+    if (timerStartedAt.current === null) return;
+    elapsedMsRef.current += performance.now() - timerStartedAt.current;
+    timerStartedAt.current = null;
+    setElapsedMs(elapsedMsRef.current);
+    setTimerRunning(false);
+  }, []);
+  useEffect(() => {
+    if (!timerRunning) return;
+    const interval = window.setInterval(() => {
+      const runningFor = timerStartedAt.current === null ? 0 : performance.now() - timerStartedAt.current;
+      setElapsedMs(elapsedMsRef.current + runningFor);
+    }, 100);
+    return () => window.clearInterval(interval);
+  }, [timerRunning]);
+  useEffect(() => {
+    if (!serverBattle) {
+      setBattle(null);
+      return;
+    }
+    if (!hasBattleAnswerBank(serverBattle)) {
+      setBattle(null);
+      setBackendContractError(true);
+      setLoadError(true);
+      return;
+    }
+    setBackendContractError(false);
+    setLoadError(false);
+    try {
+      const draft = readBattleDraft(serverBattle);
+      setBattle(draft.battle);
+      elapsedMsRef.current = draft.elapsedMs;
+      setElapsedMs(draft.elapsedMs);
+      timerStartedAt.current = null;
+      setTimerRunning(false);
+    } catch (error) {
+      setBattle(withLocalAnswers(serverBattle, serverBattle.answers));
+      setSaveError(error instanceof Error ? error.message : "Could not restore local quiz progress.");
+    }
+  }, [serverBattle]);
   useEffect(() => {
     if (phase !== "loading" || WorldRenderer) return;
     let active = true;
@@ -263,7 +313,14 @@ export function BattleScreen({
     ) {
       recorded.current = true;
       setSaving(true);
-      onComplete()
+      pauseQuizTimer();
+      onComplete(battle?.answers.map(({ questionId, selectedIndex }) => ({ questionId, selectedIndex })) ?? [])
+        .then((saved) => {
+          if (saved) {
+            clearBattleDraft(saved);
+            setBattle(saved);
+          }
+        })
         .catch((error) =>
           setSaveError(
             error instanceof Error
@@ -273,7 +330,60 @@ export function BattleScreen({
         )
         .finally(() => setSaving(false));
     }
-  }, [battleId, gameState, onComplete]);
+  }, [battle, battleId, gameState, onComplete, pauseQuizTimer]);
+  const answerLocally = useCallback(async (questionId: string, selectedIndex: number) => {
+    if (!battle) throw new Error("The chapter is not ready yet.");
+    const updated = addLocalAnswer(battle, questionId, selectedIndex);
+    writeBattleDraft(updated, elapsedMsRef.current);
+    setBattle(updated);
+  }, [battle]);
+  async function saveAndExit() {
+    if (!battle) return;
+    pauseQuizTimer();
+    setSaving(true);
+    setSaveError(undefined);
+    try {
+      writeBattleDraft(battle, elapsedMsRef.current);
+      const saved = await onExit(battle.answers.map(({ questionId, selectedIndex }) => ({ questionId, selectedIndex })));
+      clearBattleDraft(battle);
+      if (saved) setBattle(saved);
+      navigate("RegionDetail");
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Could not save chapter progress.");
+    } finally {
+      setSaving(false);
+    }
+  }
+  async function restartAttempt() {
+    if (!battle) return;
+    setSaving(true);
+    setSaveError(undefined);
+    try {
+      await onRestart();
+      clearBattleDraft(battle);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Could not restart the chapter.");
+    } finally {
+      setSaving(false);
+    }
+  }
+  async function saveResult() {
+    if (!battle) return;
+    pauseQuizTimer();
+    setSaving(true);
+    setSaveError(undefined);
+    try {
+      const saved = await onComplete(battle.answers.map(({ questionId, selectedIndex }) => ({ questionId, selectedIndex })));
+      if (saved) {
+        clearBattleDraft(saved);
+        setBattle(saved);
+      }
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Could not save the result. Try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
   function retry() {
     setWorld(undefined);
     setLoadError(false);
@@ -308,7 +418,14 @@ export function BattleScreen({
         {world && game && battle && (
           <div aria-hidden={phase !== "ready"} inert={phase !== "ready"}>
             <header className="battle-header">
-              {streak > 0 && (
+              <div className="battle-quiz-metrics" aria-label="Quiz progress">
+                <time
+                  className="battle-timer"
+                  data-testid="battle-timer"
+                  aria-label={`Quiz time ${Math.floor(elapsedMs / 60000)} minutes ${Math.floor(elapsedMs / 1000) % 60} seconds`}
+                >
+                  {`${String(Math.floor(elapsedMs / 60000)).padStart(2, "0")}:${String(Math.floor(elapsedMs / 1000) % 60).padStart(2, "0")}`}
+                </time>
                 <div
                   key={streak}
                   className="battle-streak"
@@ -327,8 +444,8 @@ export function BattleScreen({
                   />
                   <span>{streak}</span>
                 </div>
-              )}
-              <button type="button" aria-label="Battle menu" aria-haspopup="dialog" disabled={answering || saving} onClick={() => setMenu("pause")} className="battle-menu-toggle">
+              </div>
+              <button type="button" aria-label="Battle menu" aria-haspopup="dialog" disabled={answering || saving} onClick={() => { pauseQuizTimer(); setMenu("pause"); }} className="battle-menu-toggle">
                 <span aria-hidden="true">&#9776;</span>
               </button>
             </header>
@@ -400,12 +517,14 @@ export function BattleScreen({
               speechBubbleTarget={stageElement}
               onAcknowledge={setAcknowledged}
               tutorial={tutorial}
+              onPromptReady={startQuizTimer}
+              onSubmitStarted={pauseQuizTimer}
               onAnswer={async (questionId, selectedIndex) => {
                 const submittedKey = `${battle.id}:${questionId}`;
                 submittedAnswerKey.current = submittedKey;
                 setAnswering(true);
                 try {
-                  await onAnswer(questionId, selectedIndex);
+                  await answerLocally(questionId, selectedIndex);
                 } catch (error) {
                   if (submittedAnswerKey.current === submittedKey)
                     submittedAnswerKey.current = undefined;
@@ -431,9 +550,7 @@ export function BattleScreen({
                   onPress={() => {
                     setSaving(true);
                     setSaveError(undefined);
-                    onComplete()
-                      .catch((error) => setSaveError(error.message))
-                      .finally(() => setSaving(false));
+                    void saveResult();
                   }}
                 />
               ) : (
@@ -447,13 +564,7 @@ export function BattleScreen({
                     label={saving ? "Starting…" : "Retry chapter"}
                     disabled={saving}
                     tone="quiet"
-                    onPress={() => {
-                      setSaving(true);
-                      setSaveError(undefined);
-                      onRestart()
-                        .catch((error) => setSaveError(error.message))
-                        .finally(() => setSaving(false));
-                    }}
+                    onPress={() => void restartAttempt()}
                   />
                 </>
               )}
@@ -462,26 +573,23 @@ export function BattleScreen({
         </footer>
         </div>
       )}
-      <dialog ref={menuDialog} className="battle-menu" aria-labelledby="battle-menu-title" onCancel={(event) => { event.preventDefault(); if (!saving) setMenu(menu === "pause" ? null : "pause"); }}>
+      <dialog ref={menuDialog} className="battle-menu" aria-labelledby="battle-menu-title" onCancel={(event) => { event.preventDefault(); if (!saving) { setMenu(menu === "pause" ? null : "pause"); if (menu === "pause") startQuizTimer(); } }}>
         <div className="battle-menu-card">
-          <h2 id="battle-menu-title">{menu === "restart" ? "Restart battle?" : menu === "exit" ? "Exit battle?" : "Paused"}</h2>
+          <h2 id="battle-menu-title">{menu === "restart" ? "Restart battle?" : "Paused"}</h2>
           {menu === "pause" ? <>
             <div className="battle-menu-chapter">
               <strong>{title}</strong>
               <span>Chapter {battle?.chapter} · {battle?.total} questions</span>
               <span>{gameState ? status[gameState] : ""}</span>
             </div>
-            <Button label="Continue" tone="gold" onPress={() => setMenu(null)} />
-            <Button label="Restart" onPress={() => setMenu("restart")} />
-            <Button label="Exit" style={exitStyle} onPress={() => setMenu("exit")} />
-          </> : <>
-            <p>{menu === "restart" ? "Restart resets your answers and HP. Unclaimed gold and gems from this attempt will be lost." : "Exit resets this attempt. Unclaimed gold and gems will be lost. Win the chapter to keep your drops."}</p>
             {saveError && <p className="quiz-error" role="alert">{saveError}</p>}
-            <Button label={saving ? (menu === "exit" ? "Exiting..." : "Restarting...") : menu === "restart" ? "Confirm restart" : "Confirm exit"} disabled={saving} tone="gold" style={menu === "exit" ? exitStyle : undefined} onPress={() => {
-              setSaving(true); setSaveError(undefined);
-              const action = menu === "exit" ? onExit().then(() => navigate("RegionDetail")) : onRestart();
-              action.catch((error) => setSaveError(error.message)).finally(() => setSaving(false));
-            }} />
+            <Button label="Continue" tone="gold" onPress={() => { setMenu(null); startQuizTimer(); }} />
+            <Button label="Restart" onPress={() => setMenu("restart")} />
+            <Button label={saving ? "Saving..." : "Save and exit"} disabled={saving} style={exitStyle} onPress={() => void saveAndExit()} />
+          </> : <>
+            <p>Restart resets your answers and HP. Unclaimed gold and gems from this attempt will be lost.</p>
+            {saveError && <p className="quiz-error" role="alert">{saveError}</p>}
+            <Button label={saving ? "Restarting..." : "Confirm restart"} disabled={saving} tone="gold" onPress={() => void restartAttempt()} />
             <Button label="Cancel" tone="quiet" disabled={saving} onPress={() => { setSaveError(undefined); setMenu("pause"); }} />
           </>}
         </div>
@@ -519,18 +627,28 @@ export function BattleScreen({
           )}
           {loadError && (
             <div className="loading-actions" role="alert">
-              <p>Some assets failed to load.</p>
-              {saveError && <p>{saveError}</p>}
-              <Button
-                label={saving ? "Exiting..." : "Exit"}
-                tone="quiet"
-                disabled={saving || !battleReady}
-                onPress={() => {
-                  setSaving(true); setSaveError(undefined);
-                  onExit().then(() => navigate("RegionDetail")).catch((error) => setSaveError(error.message)).finally(() => setSaving(false));
-                }}
-              />
-              <Button label="Retry" tone="gold" onPress={retry} />
+              {backendContractError ? (
+                <>
+                  <p>The battle server is out of date. Restart the Nerdungeon backend, then reload this page.</p>
+                  <Button
+                    label="Reload battle"
+                    tone="gold"
+                    onPress={() => window.location.reload()}
+                  />
+                </>
+              ) : (
+                <>
+                  <p>Some assets failed to load.</p>
+                  {saveError && <p>{saveError}</p>}
+                  <Button
+                    label={saving ? "Saving..." : "Save and exit"}
+                    tone="quiet"
+                    disabled={saving || !battleReady}
+                    onPress={() => void saveAndExit()}
+                  />
+                  <Button label="Retry" tone="gold" onPress={retry} />
+                </>
+              )}
             </div>
           )}
         </div>

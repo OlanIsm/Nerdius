@@ -3,6 +3,7 @@ import type { Screen } from "../../types";
 import { expeditions } from "./tutorial";
 import type { Expedition, GameData, Region } from "./types";
 import type { useGame } from "./useGame";
+import { hasBattleAnswerBank } from "./localBattle";
 
 function findExpedition(items: Expedition[], selected: Expedition) {
   return items.find((item) => selected.id ? item.id === selected.id : item.file === selected.file);
@@ -61,7 +62,7 @@ export function useAdventure(
     setSelectedRegion(region);
   }
 
-  async function startBattle() {
+  async function startBattle(restartSaved = false) {
     if (startPending.current) return;
     startPending.current = true;
     setStartingBattle(true);
@@ -86,7 +87,19 @@ export function useAdventure(
         expedition = findExpedition(data.expeditions, expedition) ?? expedition;
       }
       if (!expedition.id || !region) throw new Error("Adventure not found. Choose an expedition from the current list.");
-      await perform({ action: "start", expeditionId: expedition.id, chapter: region.chapter });
+      const savedBattle = gameData?.battle;
+      const started =
+        restartSaved &&
+        savedBattle?.status === "active" &&
+        savedBattle.expeditionId === expedition.id &&
+        savedBattle.chapter === region.chapter
+          ? await perform({ action: "restart", battleId: savedBattle.id, expeditionId: expedition.id, chapter: region.chapter })
+          : await perform({ action: "start", expeditionId: expedition.id, chapter: region.chapter });
+      if (!hasBattleAnswerBank(started.battle)) {
+        throw new Error(
+          "The battle server is out of date. Restart the Nerdungeon backend, then try again.",
+        );
+      }
       setLastAdventure({ expedition, region });
     } catch (error) {
       navigate("RegionDetail");
@@ -97,11 +110,20 @@ export function useAdventure(
     }
   }
   async function restartBattle() {
-    await perform({ action: "restart", battleId: gameData!.battle!.id, expeditionId: currentExpedition.id, chapter: currentRegion.chapter });
+    const restarted = await perform({ action: "restart", battleId: gameData!.battle!.id, expeditionId: currentExpedition.id, chapter: currentRegion.chapter });
+    if (!hasBattleAnswerBank(restarted.battle)) {
+      throw new Error(
+        "The battle server is out of date. Restart the Nerdungeon backend, then try again.",
+      );
+    }
     setBattleEntry((value) => value + 1);
   }
   return {
     startingBattle, battleEntry, availableExpeditions, currentExpedition, currentRegion, recentAdventure,
+    hasSavedProgress: gameData?.battle?.status === "active" &&
+      gameData.battle.expeditionId === currentExpedition.id &&
+      gameData.battle.chapter === currentRegion.chapter &&
+      gameData.battle.answers.length > 0,
     setSelectedExpedition: selectExpedition, setSelectedRegion: selectRegion, startBattle, restartBattle,
   };
 }

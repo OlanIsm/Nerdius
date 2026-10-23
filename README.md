@@ -18,7 +18,7 @@ Alurnya: upload PDF → jadi materi + soal pilihan ganda → battle jawab soal �
 1. Menurunkan rasa malas belajar dengan loop pendek: baca materi → jawab 1 soal → feedback langsung → lanjut.
 2. Mengubah PDF apa pun menjadi paket belajar siap main (ringkasan, topik, materi, soal, kunci + pembahasan, referensi halaman).
 3. Memberi rasa progres yang konkret: HP, damage, loot, gold/XP/gems, chapter terbuka, koleksi summon.
-4. Menjaga kejujuran game: semua jawaban, HP, reward, dan progres dihitung backend — frontend hanya menampilkan.
+4. Menjaga kejujuran game: jawaban dinilai langsung di browser dari kunci chapter aktif, lalu divalidasi ulang backend saat disimpan; HP, reward, dan progres tetap dihitung backend.
 
 ## Fitur utama
 
@@ -26,7 +26,7 @@ Alurnya: upload PDF → jadi materi + soal pilihan ganda → battle jawab soal �
 - **Forge PDF:** upload PDF → validasi struktur → Gemini menghasilkan materi + tepat 10 soal per chapter → file disimpan privat → state ditambah. Gagal divalidasi/generasi = tidak ada ekspedisi palsu.
 - **Combat quiz:** HP pemain 500, HP musuh 100. Benar = 50 damage ke musuh; salah = 50 damage ke pemain. Musuh kalah diganti selama soal tersisa. Selesaikan 10 soal dengan HP > 0 = menang; HP 0 = kalah tanpa reward.
 - **Reward:** bonus pertama kali lulus chapter 450 gold + 100 XP; tiap musuh kalah = pending loot 100 gold + 50 gems yang hanya cair saat `complete` menang (termasuk replay). Exit/restart/kalah membuang pending loot.
-- **Aman diulang:** jawaban tersimpan, reload/resume memakai `battleId` sama, retry identik tidak menggandakan reward.
+- **Quiz responsif:** jawaban dinilai lokal tanpa menunggu request; jawaban dibatch dan disimpan saat Save and exit atau chapter selesai. Chapter yang disimpan dapat dilanjutkan atau diulang.
 - **Bazaar summon:** gacha 1× (100 gems) / 10× (900 gems) dengan animasi chest + kartu, guard saldo lokal + validasi backend.
 - **Bag, Settings, Hub badge:** tas, pengaturan nama/suara/reduce-motion, badge merah Hub untuk forge selesai/gagal, dialog forge bisa di-minimize setelah 3 detik.
 - **Battle dua baris:** scene Phaser + HP musuh di atas, HP pemain + quiz di bawah; quiz tidak menutupi canvas.
@@ -60,8 +60,8 @@ Browser (React + Phaser) ── /api (JSON + multipart) ──► Express (/api/
 
 Aturan penting:
 
-- Question bank hanya di backend. Snapshot hanya mengirim soal berikutnya **tanpa kunci**; kunci + pembahasan hanya untuk soal yang sudah dijawab.
-- `start` (expeditionId/chapter), `restart` (battleId baru, HP penuh, resource/progres utuh), `exit` (buang attempt, start berikutnya dari soal 1), `answer` (hanya soal berikutnya, index valid), `complete` (semua soal terjawab atau HP 0).
+- Question bank tersimpan di backend, tetapi answer keys chapter aktif dikirim ke browser agar grading instan; backend memvalidasi ulang pilihan dalam batch saat exit/complete.
+- `start` (expeditionId/chapter), `restart` (battleId baru, HP penuh, resource/progres utuh), `exit` (simpan batch jawaban), `answer` (aksi kompatibilitas; UI tidak mengirim satu per satu), `complete` (batch jawaban divalidasi lalu attempt diselesaikan).
 - Tulis state dengan version check + retry konflik ≤ 5×; retry answer/complete idempotent.
 
 ### Frontend (`frontend/src/`)

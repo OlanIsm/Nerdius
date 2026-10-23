@@ -15,6 +15,10 @@ const { createClient } = require('../backend/node_modules/@supabase/supabase-js'
     const context = await browser.newContext({ viewport: { width: 430, height: 932 }, reducedMotion: 'reduce' });
     const page = await context.newPage();
     page.on('pageerror', error => errors.push(error.message));
+    let answerRequests = 0;
+    page.on('request', request => {
+      if (request.url().endsWith('/api/game') && request.method() === 'POST' && request.postDataJSON()?.action === 'answer') answerRequests++;
+    });
     page.on('response', async response => {
       if (response.url().includes('/auth/v1/signup') && response.ok()) {
         const data = await response.json();
@@ -37,6 +41,8 @@ const { createClient } = require('../backend/node_modules/@supabase/supabase-js'
       assert.equal(started.status(), 200);
       const data = await started.json();
       assert.equal(data.battle.question.answerIndex, undefined);
+      assert.equal(data.battle.questionBank.length, data.battle.total);
+      assert.equal(typeof data.battle.questionBank[0].answerIndex, 'number');
       await page.getByTestId('gate-loading').waitFor({ state: 'hidden' });
       await page.getByRole('button', { name: 'Submit answer', exact: true }).waitFor();
       return data;
@@ -47,21 +53,12 @@ const { createClient } = require('../backend/node_modules/@supabase/supabase-js'
     const row = await admin.from('game_states').select('state').eq('user_id', userId).single();
     assert.ok(!row.error);
     const tutorialQuestions = row.data.state.expeditions[0].regions[0].questionBank;
-    // One injected transport failure verifies retry UX; other browser requests use the real backend.
-    let failOnce = true;
-    await page.route('**/api/game', async route => {
-      if (route.request().method() === 'POST' && route.request().postDataJSON().action === 'answer' && failOnce) {
-        failOnce = false;
-        return route.fulfill({ status: 503, json: { error: 'Connection interrupted. Try saving your answer again.' } });
-      }
-      return route.continue();
-    });
     const first = tutorialQuestions[0];
+    const answerRequestsBefore = answerRequests;
     await page.getByRole('radio', { name: first.options[(first.answerIndex + 1) % 4], exact: true }).check();
     await page.getByRole('button', { name: 'Submit answer', exact: true }).click();
-    await page.getByRole('alert').getByText('Connection interrupted. Try saving your answer again.', { exact: true }).waitFor();
-    await page.getByRole('button', { name: 'Submit answer', exact: true }).click();
     await page.getByText('Not quite', { exact: true }).waitFor();
+    assert.equal(answerRequests, answerRequestsBefore, 'Answer grading does not send a per-answer request');
     fs.mkdirSync('test-results', { recursive: true });
     await page.screenshot({ path: 'test-results/learning-feedback-mobile.png' });
     const originalBattleId = active.battle.id;
@@ -71,8 +68,8 @@ const { createClient } = require('../backend/node_modules/@supabase/supabase-js'
     await page.getByRole('button', { name: 'Start Adventure', exact: true }).click();
     active = await (await resumedResponse).json();
     assert.equal(active.battle.id, originalBattleId);
-    assert.equal(active.battle.answers.length, 1);
-    assert.equal(active.battle.playerHp, 450);
+    assert.equal(active.battle.answers.length, 0, 'Browser draft is not sent until save or completion');
+    assert.equal(await page.locator('#player-hp').getAttribute('value'), '450', 'Local draft restores its immediate score');
     await page.getByText('Not quite', { exact: true }).waitFor();
     await page.getByRole('button', { name: 'Next', exact: true }).click();
     for (const question of tutorialQuestions.slice(1)) {
@@ -88,8 +85,7 @@ const { createClient } = require('../backend/node_modules/@supabase/supabase-js'
     assert.equal(completed.data.state.battleHistory.length, 1);
     await page.screenshot({ path: 'test-results/learning-result-mobile.png' });
     await page.getByRole('button', { name: 'Battle menu', exact: true }).click();
-    await page.getByRole('button', { name: 'Exit', exact: true }).click();
-    await page.getByRole('button', { name: 'Confirm exit', exact: true }).click();
+    await page.getByRole('button', { name: 'Save and exit', exact: true }).click();
     await page.getByRole('button', { name: 'Start Adventure', exact: true }).waitFor();
     await page.getByRole('button', { name: 'Back', exact: true }).click();
     await page.getByRole('button', { name: 'Back', exact: true }).click();
@@ -121,14 +117,9 @@ const { createClient } = require('../backend/node_modules/@supabase/supabase-js'
     const bank = saved.data.state.expeditions.find(item => item.id === expedition.id).regions[0].questionBank;
     assert.equal(bank.length, 10);
     for (const question of bank) {
+      await page.locator('.battle-question-bubble').click({ force: true });
       await page.getByRole('radio', { name: question.options[question.answerIndex], exact: true }).check();
-      const reply = page.waitForResponse(response => response.url().endsWith('/api/game') && response.request().postDataJSON()?.action === 'answer');
       await page.getByRole('button', { name: 'Submit answer', exact: true }).click();
-      const answerResponse = await reply;
-      const answerData = await answerResponse.json();
-      assert.equal(answerResponse.status(), 200, JSON.stringify(answerData));
-      assert.equal(answerData.battle.feedback.questionId, question.id);
-      assert.equal(answerData.battle.feedback.correct, true, JSON.stringify(answerData.battle.feedback));
       await page.getByText('Correct!', { exact: true }).waitFor();
       await page.getByRole('button', { name: 'Next', exact: true }).click();
     }
@@ -141,16 +132,15 @@ const { createClient } = require('../backend/node_modules/@supabase/supabase-js'
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.screenshot({ path: 'test-results/learning-result-desktop.png' });
     await page.getByRole('button', { name: 'Battle menu', exact: true }).click();
-    await page.getByRole('button', { name: 'Exit', exact: true }).click();
-    await page.getByRole('button', { name: 'Confirm exit', exact: true }).click();
+    await page.getByRole('button', { name: 'Save and exit', exact: true }).click();
     await page.getByRole('button', { name: 'Start Adventure', exact: true }).waitFor();
     await page.reload({ waitUntil: 'networkidle' });
     const fresh = await admin.from('game_states').select('state').eq('user_id', userId).single();
     assert.equal(fresh.data.state.gold, initial.gold + 1800);
-    assert.equal(fresh.data.state.battle, undefined, 'Confirmed exit removes the saved attempt');
+    assert.equal(fresh.data.state.battle.status, 'passed', 'Save and exit preserves the completed attempt');
     assert.equal(users.size, 1, 'Reload preserves the browser account');
     assert.deepEqual(errors, []);
-    console.log('PASS live browser: tutorial, wrong-answer feedback, network retry, resumed answers, real PDF generation, verified battle rewards and reload persistence');
+    console.log('PASS live browser: tutorial, instant local feedback, saved answers, real PDF generation, verified battle rewards and reload persistence');
   } catch (error) {
     fs.mkdirSync('test-results', { recursive: true });
     for (const context of browser.contexts()) for (const page of context.pages()) {

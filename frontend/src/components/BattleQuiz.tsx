@@ -129,6 +129,8 @@ export function BattleQuiz({
   tutorial,
   onAnswer,
   onAdvance,
+  onPromptReady,
+  onSubmitStarted,
   speaker,
   attackInProgress,
   speechBubbleTarget,
@@ -139,6 +141,8 @@ export function BattleQuiz({
   tutorial: boolean;
   onAnswer: (questionId: string, selectedIndex: number) => Promise<void>;
   onAdvance: () => void;
+  onPromptReady: () => void;
+  onSubmitStarted: () => void;
   speaker: string;
   attackInProgress: boolean;
   speechBubbleTarget: HTMLElement | null;
@@ -147,6 +151,12 @@ export function BattleQuiz({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const pending = useRef(false);
+  const typingInterval = useRef<number | undefined>(undefined);
+  const finishTyping = useRef<() => void>(() => {});
+  const onPromptReadyRef = useRef(onPromptReady);
+  useEffect(() => {
+    onPromptReadyRef.current = onPromptReady;
+  }, [onPromptReady]);
   const [characterQuotes] = usePreference("nerdungeon.characterQuotes", "on");
   const quotesEnabled = characterQuotes !== "off";
   const feedback = battle.feedback && battle.feedback.questionId !== acknowledged ? battle.feedback : null;
@@ -161,6 +171,7 @@ export function BattleQuiz({
       ? "#194b2d"
       : "#62318a";
   const [typedPrompt, setTypedPrompt] = useState("");
+  const [typing, setTyping] = useState(false);
   const prompt = question
     ? characterPrompt(speaker, question.id, question.prompt, quotesEnabled)
     : undefined;
@@ -183,27 +194,60 @@ export function BattleQuiz({
   useEffect(() => {
     if (prompt === undefined || feedback) {
       setTypedPrompt("");
+      setTyping(false);
       return;
     }
     setTypedPrompt("");
+    setTyping(true);
     let visibleCharacters = 0;
+    let revealed = false;
     const stopVoice = quotesEnabled ? startCharacterVoice(voice) : () => {};
-    const typing = window.setInterval(() => {
+    const reveal = () => {
+      if (revealed) return;
+      revealed = true;
+      if (typingInterval.current !== undefined) window.clearInterval(typingInterval.current);
+      typingInterval.current = undefined;
+      stopVoice();
+      setTypedPrompt(prompt);
+      setTyping(false);
+      onPromptReadyRef.current();
+    };
+    finishTyping.current = reveal;
+    typingInterval.current = window.setInterval(() => {
       visibleCharacters = Math.min(visibleCharacters + 1, prompt.length);
       setTypedPrompt(prompt.slice(0, visibleCharacters));
-      if (visibleCharacters === prompt.length) {
-        window.clearInterval(typing);
-        stopVoice();
-      }
+      if (visibleCharacters === prompt.length) reveal();
     }, 28);
     return () => {
-      window.clearInterval(typing);
+      if (typingInterval.current !== undefined) window.clearInterval(typingInterval.current);
+      typingInterval.current = undefined;
       stopVoice();
     };
   }, [questionId, prompt, voiceQuestionId, voice, feedback, quotesEnabled]);
+  useEffect(() => {
+    if (!typing) return;
+    const revealOnEnter = (event: KeyboardEvent) => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      event.stopPropagation();
+      finishTyping.current();
+    };
+    const revealOnClick = (event: MouseEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      finishTyping.current();
+    };
+    document.addEventListener("keydown", revealOnEnter, true);
+    document.addEventListener("click", revealOnClick, true);
+    return () => {
+      document.removeEventListener("keydown", revealOnEnter, true);
+      document.removeEventListener("click", revealOnClick, true);
+    };
+  }, [typing]);
   async function submit() {
     if (!question || selected === undefined || pending.current) return;
     pending.current = true;
+    onSubmitStarted();
     setBusy(true);
     setError(undefined);
     try {

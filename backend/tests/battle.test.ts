@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { applyGameAction, initialGame } from "../src/modules/game/state.ts";
 import { battleSnapshot } from "../src/modules/game/battle.ts";
 
-test("answers are ordered, immutable and idempotent; future answer keys are not exposed", () => {
+test("answers are ordered and idempotent; local grading gets the active chapter's answer bank", () => {
   const game = initialGame();
   applyGameAction(game, { action: "start", expeditionId: "tutorial", chapter: 1 });
   const battleId = game.battle!.id;
@@ -11,6 +11,9 @@ test("answers are ordered, immutable and idempotent; future answer keys are not 
   const before = battleSnapshot(game)!;
   assert.equal("answerIndex" in before.question!, false);
   assert.equal("explanation" in before.question!, false);
+  assert.equal(before.questionBank.length, questions.length);
+  assert.equal(before.questionBank[0].answerIndex, questions[0].answerIndex);
+  assert.equal(before.questionBank[0].explanation, questions[0].explanation);
   assert.equal(before.feedback, null);
   assert.throws(() => applyGameAction(game, { action: "answer", battleId, questionId: questions[1].id, selectedIndex: 1 }));
   assert.throws(() => applyGameAction(game, { action: "answer", battleId: "another-account", questionId: questions[0].id, selectedIndex: 0 }));
@@ -29,6 +32,29 @@ test("answers are ordered, immutable and idempotent; future answer keys are not 
   assert.throws(() => applyGameAction(game, { action: "complete" }));
   assert.throws(() => applyGameAction(game, { action: "complete", battleId }), /Answer every question/);
   assert.equal(game.gold, 1450);
+});
+
+test("batch completion validates all locally graded answers before scoring or rewarding", () => {
+  const game = initialGame();
+  applyGameAction(game, { action: "start", expeditionId: "tutorial", chapter: 1 });
+  const battleId = game.battle!.id;
+  const questions = game.expeditions[0].regions[0].questionBank!;
+  const answers = questions.map((question, index) => ({
+    questionId: question.id,
+    selectedIndex: index === 0 ? (question.answerIndex + 1) % question.options.length : question.answerIndex,
+  }));
+  const invalid = answers.map((answer) => ({ ...answer }));
+  invalid[1] = { ...invalid[1], questionId: questions[2].id };
+  assert.throws(() => applyGameAction(game, { action: "complete", battleId, answers: invalid }), /out-of-order/);
+  assert.equal(game.battle!.answers.length, 0, "Invalid batch does not partially save");
+  assert.equal(game.gold, 1450, "Invalid batch cannot award resources");
+  applyGameAction(game, { action: "complete", battleId, answers });
+  assert.equal(game.battle!.answers.length, questions.length);
+  assert.equal(game.battle!.answers[0].correct, false);
+  assert.equal(game.battle!.answers[1].correct, true);
+  assert.equal(game.battle!.status, "passed");
+  assert.equal(game.gold, 2300);
+  assert.equal(game.xp, 100);
 });
 
 test("failed attempts save results without rewards; a passing retry rewards once", () => {
@@ -110,7 +136,7 @@ test("explicit restart resets an active attempt without changing resources or ac
   assert.throws(() => applyGameAction(game, restart));
 });
 
-test("exit discards chapter answers without removing completed progress or resources and rejects stale actions", () => {
+test("exit saves a chapter checkpoint without awarding rewards and rejects stale actions", () => {
   const game = initialGame();
   const questions = game.expeditions[0].regions[0].questionBank!;
   applyGameAction(game, { action: "start", expeditionId: "tutorial", chapter: 1 });
@@ -120,25 +146,24 @@ test("exit discards chapter answers without removing completed progress or resou
   applyGameAction(game, { action: "start", expeditionId: "tutorial", chapter: 1 });
   const oldId = game.battle!.id;
   applyGameAction(game, { action: "answer", battleId: oldId, questionId: questions[0].id, selectedIndex: (questions[0].answerIndex + 1) % 4 });
-  const before = structuredClone(game);
   assert.throws(() => applyGameAction(game, { action: "exit", battleId: "another-account" }));
-  const exit = { action: "exit", battleId: oldId };
+  const exit = { action: "exit", battleId: oldId, answers: game.battle!.answers };
   applyGameAction(game, exit);
   applyGameAction(game, exit);
-  assert.equal(battleSnapshot(game), null);
-  delete before.battle;
-  assert.deepEqual(game, before);
+  assert.equal(game.battle!.id, oldId);
+  assert.equal(game.battle!.answers.length, 1);
+  assert.equal(game.gold, 2400, "Exit does not pay additional pending or chapter rewards");
   applyGameAction(game, { action: "start", expeditionId: "tutorial", chapter: 1 });
-  assert.notEqual(game.battle!.id, oldId);
-  assert.equal(game.battle!.answers.length, 0);
-  assert.equal(battleSnapshot(game)!.playerHp, 500);
+  assert.equal(game.battle!.id, oldId, "Starting the unfinished chapter resumes its saved attempt");
+  assert.equal(game.battle!.answers.length, 1);
+  assert.equal(battleSnapshot(game)!.playerHp, 450);
   assert.equal(battleSnapshot(game)!.enemyHp, 100);
-  assert.throws(() => applyGameAction(game, exit));
-  assert.throws(() => applyGameAction(game, { action: "answer", battleId: oldId, questionId: questions[1].id, selectedIndex: 0 }));
+  applyGameAction(game, exit);
+  assert.throws(() => applyGameAction(game, { action: "exit", battleId: oldId, answers: [{ questionId: questions[0].id, selectedIndex: questions[0].answerIndex }] }), /cannot be changed/);
 });
 
 
-test("monster drops stay pending until victory; exit/restart discard them and complete retries pay once", () => {
+test("monster drops stay pending until victory; saved exits retain drops and complete retries pay once", () => {
   const game = initialGame();
   const bank = game.expeditions[0].regions[0].questionBank!;
   const gold = game.gold, gems = game.gems;
@@ -152,11 +177,13 @@ test("monster drops stay pending until victory; exit/restart discard them and co
   applyGameAction(game, { action: "restart", battleId: id, expeditionId: "tutorial", chapter: 1 });
   assert.equal(battleSnapshot(game)!.pendingGold, 0);
   id = game.battle!.id; answer(id, 0); answer(id, 1);
-  applyGameAction(game, { action: "exit", battleId: id });
+  applyGameAction(game, { action: "exit", battleId: id, answers: game.battle!.answers });
   assert.equal(game.gold, gold); assert.equal(game.gems, gems);
-  assert.equal(battleSnapshot(game), null);
+  assert.equal(battleSnapshot(game)!.pendingGold, 100);
+  assert.equal(battleSnapshot(game)!.pendingGems, 50);
+  const savedAnswers = game.battle!.answers.length;
   id = start();
-  bank.forEach((_, index) => answer(id, index));
+  bank.slice(savedAnswers).forEach((_, offset) => answer(id, savedAnswers + offset));
   assert.equal(game.gold, gold); assert.equal(game.gems, gems);
   applyGameAction(game, { action: "complete", battleId: id });
   applyGameAction(game, { action: "complete", battleId: id });

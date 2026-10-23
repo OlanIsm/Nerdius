@@ -129,7 +129,7 @@ export default function App() {
   const game = useGame(setMessage, authStatus === "signed-in");
   const { gameData, perform, forge } = game;
   const {
-    startingBattle, battleEntry, availableExpeditions, currentExpedition, currentRegion, recentAdventure,
+    startingBattle, battleEntry, availableExpeditions, currentExpedition, currentRegion, recentAdventure, hasSavedProgress,
     setSelectedExpedition, setSelectedRegion, startBattle, restartBattle,
   } = useAdventure(game, navigate, setMessage);
   const props = { navigate, notify: setMessage };
@@ -282,8 +282,11 @@ export default function App() {
               <RegionDetailScreen
                 expedition={currentExpedition}
                 region={currentRegion}
+                hasSavedProgress={hasSavedProgress}
                 onBack={() => navigate("Region")}
                 onStart={startBattle}
+                onContinue={() => void startBattle()}
+                onRestart={() => void startBattle(true)}
               />
             </div>
           )}
@@ -294,9 +297,8 @@ export default function App() {
               battle={startingBattle ? null : gameData?.battle ?? null}
               title={currentExpedition.title}
               tutorial={currentExpedition.id === "tutorial"}
-              onAnswer={(questionId, selectedIndex) => perform({ action: "answer", battleId: gameData!.battle!.id, questionId, selectedIndex }).then(() => {})}
-              onExit={() => perform({ action: "exit", battleId: gameData!.battle!.id }).then(() => {})}
-              onComplete={() => perform({ action: "complete", battleId: gameData!.battle!.id }).then(() => {})}
+              onExit={(answers) => perform({ action: "exit", battleId: gameData!.battle!.id, answers }).then((data) => data.battle ?? undefined)}
+              onComplete={(answers) => perform({ action: "complete", battleId: gameData!.battle!.id, answers }).then((data) => data.battle ?? undefined)}
               onRestart={restartBattle}
             />
           )}

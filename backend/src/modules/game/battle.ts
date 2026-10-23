@@ -9,6 +9,34 @@ function combat(battle: Battle, total: number) {
   return { playerHp, playerMaxHp: 500, enemyHp: finished && correct > 0 && correct % 2 === 0 ? 0 : 100 - correct % 2 * 50, enemyMaxHp: 100, enemiesDefeated, finished };
 }
 
+function saveAnswers(battle: Battle, questions: Question[], input: unknown): void {
+  if (!Array.isArray(input) || input.length > questions.length || input.length < battle.answers.length) {
+    throw new GameActionError("Invalid saved answers");
+  }
+  const answers = input.map((item, index) => {
+    if (!item || typeof item !== "object") throw new GameActionError("Invalid saved answer");
+    const answer = item as Record<string, unknown>;
+    const question = questions[index];
+    if (
+      !question ||
+      answer.questionId !== question.id ||
+      typeof answer.selectedIndex !== "number" ||
+      !Number.isInteger(answer.selectedIndex) ||
+      answer.selectedIndex < 0 ||
+      answer.selectedIndex >= question.options.length
+    ) {
+      throw new GameActionError("Invalid or out-of-order saved answer");
+    }
+    const saved = { questionId: question.id, selectedIndex: answer.selectedIndex, correct: answer.selectedIndex === question.answerIndex };
+    const previous = battle.answers[index];
+    if (previous && (previous.questionId !== saved.questionId || previous.selectedIndex !== saved.selectedIndex)) {
+      throw new GameActionError("Saved answers cannot be changed");
+    }
+    return saved;
+  });
+  battle.answers = answers;
+}
+
 function activeRegion(game: GameData, battle: Pick<Battle, "expeditionId" | "chapter">): Region {
   const region = game.expeditions.find((item) => item.id === battle.expeditionId)?.regions.find((item) => item.chapter === battle.chapter);
   if (!region?.questionBank?.length) throw new GameActionError("This chapter has no generated questions. Upload a PDF to study.");
@@ -20,7 +48,8 @@ export function applyBattleAction(game: GameData, body: Record<string, unknown>)
     if (typeof body.battleId !== "string" || !body.battleId) throw new GameActionError("Invalid battle to exit");
     if (!game.battle) return; // Retry after a lost response is safe once the attempt is removed.
     if (game.battle.id !== body.battleId) throw new GameActionError("Invalid battle to exit");
-    delete game.battle;
+    const questions = activeRegion(game, game.battle).questionBank!;
+    if (body.answers !== undefined) saveAnswers(game.battle, questions, body.answers);
     return;
   }
   if (body.action === "start" || body.action === "restart") {
@@ -43,6 +72,10 @@ export function applyBattleAction(game: GameData, body: Record<string, unknown>)
   const battle = game.battle;
   if (!battle || body.battleId !== battle.id) throw new GameActionError("Invalid battle. Start or resume the chapter first.");
   const questions = activeRegion(game, battle).questionBank!;
+  if (body.action === "complete" && body.answers !== undefined) {
+    if (battle.status !== "active") return;
+    saveAnswers(battle, questions, body.answers);
+  }
   if (body.action === "answer") {
     const selected = body.selectedIndex;
     if (typeof selected !== "number" || !Number.isInteger(selected)) throw new GameActionError("Choose a valid answer");
@@ -96,6 +129,7 @@ export function battleSnapshot(game: GameData) {
     ...hp,
     pendingGold: battle.status === "active" ? hp.enemiesDefeated * 100 : 0,
     pendingGems: battle.status === "active" ? hp.enemiesDefeated * 50 : 0,
+    questionBank: questions.map((question) => ({ ...publicQuestion(question), answerIndex: question.answerIndex, explanation: question.explanation })),
     question: next ? publicQuestion(next) : null,
     feedback: previous && answered ? { ...publicQuestion(answered), ...previous, answerIndex: answered.answerIndex, explanation: answered.explanation } : null,
   };

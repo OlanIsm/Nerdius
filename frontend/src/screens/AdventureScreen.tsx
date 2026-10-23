@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { mapArt } from "../assets";
 import { Badge, Button, Icon } from "../components/GameUI";
 import {
@@ -240,14 +240,26 @@ export function RegionScreen({
 export function RegionDetailScreen({
   expedition,
   region,
+  hasSavedProgress = false,
   onBack,
   onStart,
+  onContinue,
+  onRestart,
 }: {
   expedition: Expedition;
   region: Region;
+  hasSavedProgress?: boolean;
   onBack: () => void;
   onStart: () => void;
+  onContinue?: () => void;
+  onRestart?: () => void;
 }) {
+  const [showSavedChoices, setShowSavedChoices] = useState(false);
+  const savedChoices = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    if (showSavedChoices) savedChoices.current?.showModal();
+    else savedChoices.current?.close();
+  }, [showSavedChoices]);
   const index = expedition.regions.findIndex(
     (item) => item.chapter === region.chapter,
   );
@@ -319,10 +331,25 @@ export function RegionDetailScreen({
           <RealmButton
             label="Start Adventure"
             icon="sword-cross"
-            onPress={onStart}
+            onPress={() => hasSavedProgress && onContinue && onRestart
+              ? setShowSavedChoices(true)
+              : onStart()}
           />
         </div>
       </div>
+      <dialog
+        ref={savedChoices}
+        className="battle-menu"
+        aria-labelledby="saved-progress-title"
+        onCancel={(event) => { event.preventDefault(); setShowSavedChoices(false); }}
+      >
+        <div className="battle-menu-card">
+          <h2 id="saved-progress-title">Continue from last saved</h2>
+          <Button label="Continue" tone="gold" onPress={() => { setShowSavedChoices(false); onContinue?.(); }} />
+          <Button label="Restart" onPress={() => { setShowSavedChoices(false); onRestart?.(); }} />
+          <Button label="Cancel" tone="quiet" onPress={() => setShowSavedChoices(false)} />
+        </div>
+      </dialog>
     </div>
   );
 }

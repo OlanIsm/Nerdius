@@ -40,6 +40,10 @@ const correctAnswerUrl = new URL(
   "../../assets/audio/correct-kalimba.m4a",
   import.meta.url,
 ).href;
+const coinPickupUrl = new URL(
+  "../../assets/audio/ding.m4a",
+  import.meta.url,
+).href;
 const damageHitUrl = new URL(
   "../../assets/audio/damage-hit.mp3",
   import.meta.url,
@@ -314,7 +318,7 @@ export function playCorrectAnswerSound() {
 }
 
 export function playCoinPickupSound() {
-  playOneShot(correctAnswerUrl);
+  playOneShot(coinPickupUrl);
 }
 
 export function playDamageHitSound() {
